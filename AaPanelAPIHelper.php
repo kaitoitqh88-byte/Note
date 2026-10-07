@@ -277,7 +277,7 @@ class AaPanelAPI {
     /**
      * Make HTTP request
      */
-    private function makeRequest($endpoint, $method = 'GET', $data = []) {
+    public function makeRequest($endpoint, $method = 'GET', $data = []) {
         $url = $this->panelUrl . $endpoint;
         
         $ch = curl_init();

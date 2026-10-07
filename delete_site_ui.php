@@ -117,6 +117,77 @@ function deleteSiteBuildDomainMap(array $siteTable) {
     return $map;
 }
 
+function deleteSiteLoadVpsList($vpsFile = null) {
+    if ($vpsFile === null) {
+        $vpsFile = __DIR__ . '/vps.json';
+    }
+    if (!file_exists($vpsFile)) {
+        return [];
+    }
+
+    $data = json_decode((string)file_get_contents($vpsFile), true);
+    return is_array($data) ? $data : [];
+}
+
+function deleteSiteBuildVpsApiConfig(array $vps) {
+    $panelUrl = trim((string)($vps['info'] ?? ''));
+    if ($panelUrl === '') {
+        $ip = trim((string)($vps['ip'] ?? ''));
+        $panelUrl = $ip !== '' ? 'http://' . $ip . ':8888' : '';
+    }
+    if ($panelUrl !== '' && !preg_match('#^https?://#i', $panelUrl)) {
+        $panelUrl = 'http://' . $panelUrl;
+    }
+
+    $apiKey = trim((string)($vps['aapanel_keyapi'] ?? ($vps['api_key'] ?? '')));
+
+    return [
+        'ip' => trim((string)($vps['ip'] ?? '')),
+        'api_url' => rtrim($panelUrl, '/'),
+        'api_key' => $apiKey,
+    ];
+}
+
+function deleteSiteResolveDomainOnVps($domain, array $vpsList) {
+    $normalized = deleteSiteNormalizeDomain($domain);
+    if ($normalized === '') {
+        return ['success' => false, 'msg' => 'Domain không hợp lệ'];
+    }
+
+    foreach ($vpsList as $vps) {
+        if (!is_array($vps)) {
+            continue;
+        }
+
+        $config = deleteSiteBuildVpsApiConfig($vps);
+        if ($config['api_url'] === '' || $config['api_key'] === '') {
+            continue;
+        }
+
+        $siteResult = deleteSiteFetchSiteTable($config['api_url'], $config['api_key']);
+        $siteTable = $siteResult['site_table'] ?? [];
+        if (empty($siteTable)) {
+            continue;
+        }
+
+        $siteMap = deleteSiteBuildDomainMap($siteTable);
+        if (!isset($siteMap[$normalized])) {
+            continue;
+        }
+
+        return [
+            'success' => true,
+            'api_url' => $config['api_url'],
+            'api_key' => $config['api_key'],
+            'site' => $siteMap[$normalized],
+            'vps' => $vps,
+            'vps_ip' => $config['ip'],
+        ];
+    }
+
+    return ['success' => false, 'msg' => 'Không tìm thấy domain trên bất kỳ VPS nào trong vps.json'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json; charset=utf-8');
 
@@ -124,27 +195,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     $apiKey = trim($_POST['api_key'] ?? '');
     $action = $_POST['ajax_action'];
 
+    $vpsList = deleteSiteLoadVpsList();
     if (!$apiUrl || !$apiKey) {
-        echo json_encode(['success' => false, 'msg' => 'Thiếu API URL hoặc API Key']);
-        exit;
+        if ($action === 'test_connection' || $action === 'get_site_list' || $action === 'delete_sites') {
+            if (empty($vpsList)) {
+                echo json_encode(['success' => false, 'msg' => 'Thiếu API URL/API Key và không tìm thấy file vps.json']);
+                exit;
+            }
+        } else {
+            echo json_encode(['success' => false, 'msg' => 'Thiếu API URL hoặc API Key']);
+            exit;
+        }
     }
 
     if ($action === 'test_connection') {
-        $r = deleteSiteAaPanelRequest($apiUrl, $apiKey, '/system?action=GetSystemTotal');
-        $ok = isset($r['memTotal']) || (isset($r['status']) && $r['status'] === true);
-        echo json_encode([
-            'success' => $ok,
-            'msg' => $ok ? 'Kết nối thành công!' : ($r['msg'] ?? 'Kết nối thất bại'),
-        ]);
+        if ($apiUrl && $apiKey) {
+            $r = deleteSiteAaPanelRequest($apiUrl, $apiKey, '/system?action=GetSystemTotal');
+            $ok = isset($r['memTotal']) || (isset($r['status']) && $r['status'] === true);
+            echo json_encode([
+                'success' => $ok,
+                'msg' => $ok ? 'Kết nối thành công!' : ($r['msg'] ?? 'Kết nối thất bại'),
+            ]);
+            exit;
+        }
+
+        $detected = [];
+        $detectedIps = [];
+        foreach ($vpsList as $vps) {
+            if (!is_array($vps)) {
+                continue;
+            }
+            $config = deleteSiteBuildVpsApiConfig($vps);
+            if ($config['api_url'] === '' || $config['api_key'] === '') {
+                continue;
+            }
+            $r = deleteSiteAaPanelRequest($config['api_url'], $config['api_key'], '/system?action=GetSystemTotal');
+            $ok = isset($r['memTotal']) || (isset($r['status']) && $r['status'] === true);
+            if ($ok) {
+                $detectedIps[] = $config['ip'];
+            }
+        }
+
+        if (!empty($detectedIps)) {
+            echo json_encode([
+                'success' => true,
+                'msg' => 'Kết nối thành công qua vps.json, VPS: ' . implode(', ', $detectedIps),
+            ]);
+            exit;
+        }
+
+        echo json_encode(['success' => false, 'msg' => 'Không kết nối được VPS nào từ vps.json']);
         exit;
     }
 
     if ($action === 'get_site_list') {
-        $result = deleteSiteFetchSiteTable($apiUrl, $apiKey);
+        if ($apiUrl && $apiKey) {
+            $result = deleteSiteFetchSiteTable($apiUrl, $apiKey);
+            echo json_encode([
+                'success' => !empty($result['site_table']),
+                'site_table' => $result['site_table'],
+                'msg' => empty($result['site_table']) ? 'Không lấy được danh sách site' : '',
+            ]);
+            exit;
+        }
+
+        $siteTable = [];
+        $seen = [];
+        foreach ($vpsList as $vps) {
+            if (!is_array($vps)) {
+                continue;
+            }
+            $config = deleteSiteBuildVpsApiConfig($vps);
+            if ($config['api_url'] === '' || $config['api_key'] === '') {
+                continue;
+            }
+            $result = deleteSiteFetchSiteTable($config['api_url'], $config['api_key']);
+            foreach (($result['site_table'] ?? []) as $row) {
+                $key = ($row['s_id'] ?? '') . '|' . ($row['domain'] ?? '');
+                if ($key !== '|' && !isset($seen[$key])) {
+                    $siteTable[] = $row;
+                    $seen[$key] = true;
+                }
+            }
+        }
+
         echo json_encode([
-            'success' => !empty($result['site_table']),
-            'site_table' => $result['site_table'],
-            'msg' => empty($result['site_table']) ? 'Không lấy được danh sách site' : '',
+            'success' => !empty($siteTable),
+            'site_table' => $siteTable,
+            'msg' => empty($siteTable) ? 'Không lấy được danh sách site từ vps.json' : '',
         ]);
         exit;
     }
@@ -161,31 +299,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             exit;
         }
 
-        $siteResult = deleteSiteFetchSiteTable($apiUrl, $apiKey);
-        $siteTable = $siteResult['site_table'] ?? [];
-        if (empty($siteTable)) {
-            echo json_encode(['success' => false, 'msg' => 'Không lấy được danh sách site từ aaPanel']);
-            exit;
-        }
-
-        $domainMap = deleteSiteBuildDomainMap($siteTable);
         $results = [];
         $successCount = 0;
         $errorCount = 0;
         $notFoundCount = 0;
 
         foreach ($domains as $domain) {
-            if (!isset($domainMap[$domain])) {
+            $resolved = ['success' => false];
+            if ($apiUrl && $apiKey) {
+                $siteResult = deleteSiteFetchSiteTable($apiUrl, $apiKey);
+                $siteTable = $siteResult['site_table'] ?? [];
+                if (!empty($siteTable)) {
+                    $domainMap = deleteSiteBuildDomainMap($siteTable);
+                    if (isset($domainMap[$domain])) {
+                        $resolved = [
+                            'success' => true,
+                            'api_url' => $apiUrl,
+                            'api_key' => $apiKey,
+                            'site' => $domainMap[$domain],
+                        ];
+                    }
+                }
+            }
+
+            if (!$resolved['success'] && !empty($vpsList)) {
+                $resolved = deleteSiteResolveDomainOnVps($domain, $vpsList);
+            }
+
+            if (!$resolved['success']) {
                 $notFoundCount++;
                 $results[] = [
                     'domain' => $domain,
                     'status' => 'not_found',
-                    'msg' => 'Không tìm thấy site trên aaPanel',
+                    'msg' => $resolved['msg'] ?? 'Không tìm thấy site trên aaPanel',
                 ];
                 continue;
             }
 
-            $site = $domainMap[$domain];
+            $site = $resolved['site'];
             $payload = [
                 'id' => $site['s_id'],
                 'webname' => $site['webname'],
@@ -200,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 $payload['path'] = 1;
             }
 
-            $r = deleteSiteAaPanelRequest($apiUrl, $apiKey, '/site?action=DeleteSite', $payload);
+            $r = deleteSiteAaPanelRequest($resolved['api_url'], $resolved['api_key'], '/site?action=DeleteSite', $payload);
             $ok = (isset($r['status']) && $r['status'] === true)
                 || (isset($r['code']) && (int)$r['code'] === 0);
 
@@ -211,6 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                     'status' => 'success',
                     'msg' => $r['msg'] ?? 'Đã xóa',
                     'site_id' => $site['s_id'],
+                    'vps_ip' => $resolved['vps_ip'] ?? '',
                 ];
             } else {
                 $errorCount++;
@@ -219,6 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                     'status' => 'error',
                     'msg' => $r['msg'] ?? ($r['error'] ?? 'Xóa thất bại'),
                     'site_id' => $site['s_id'],
+                    'vps_ip' => $resolved['vps_ip'] ?? '',
                 ];
             }
         }
@@ -242,16 +395,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
 $currentPage = 'delete_site_ui';
 include __DIR__ . '/includes/main_navigation.php';
-
-$vpsList = [];
-$vpsFile = __DIR__ . '/vps.json';
-if (file_exists($vpsFile)) {
-    $json = file_get_contents($vpsFile);
-    $vpsList = json_decode($json, true);
-    if (!is_array($vpsList)) {
-        $vpsList = [];
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -303,8 +446,6 @@ if (file_exists($vpsFile)) {
             color: #00ff66 !important;
             border-color: #00ff66 !important;
         }
-        .vps-row { cursor: pointer; }
-        .vps-row:hover { background: #001a0d !important; }
         .result-success { color: #00ff66; }
         .result-error { color: #ff6666; }
         .result-warn { color: #ffcc00; }
@@ -313,44 +454,7 @@ if (file_exists($vpsFile)) {
 <body>
 <div class="container-fluid py-3">
     <div class="row">
-        <div class="col-lg-5 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">Danh sách VPS (bấm để điền API)</h5>
-                </div>
-                <div class="card-body p-2">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm mb-0">
-                            <thead>
-                                <tr>
-                                    <th>IP</th>
-                                    <th>Info</th>
-                                    <th>API Key</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($vpsList as $vps):
-                                $apiKey = $vps['aapanel_keyapi'] ?? ($vps['api_key'] ?? '');
-                                $panelUrl = (isset($vps['info']) && strpos($vps['info'], 'http') === 0)
-                                    ? $vps['info']
-                                    : ('http://' . ($vps['ip'] ?? '') . ':8888');
-                            ?>
-                                <tr class="vps-row"
-                                    data-api-url="<?= htmlspecialchars($panelUrl) ?>"
-                                    data-api-key="<?= htmlspecialchars($apiKey) ?>">
-                                    <td><?= htmlspecialchars($vps['ip'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($vps['info'] ?? '') ?></td>
-                                    <td><?= $apiKey ? htmlspecialchars($apiKey) : '<span class="text-muted">(chưa có)</span>' ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-7 mb-4">
+        <div class="col-lg-12 mb-4">
             <div class="card h-100">
                 <div class="card-header">
                     <h4 class="mb-0">Xóa website trên aaPanel theo domain</h4>
@@ -358,25 +462,11 @@ if (file_exists($vpsFile)) {
                 <div class="card-body">
                     <form id="deleteSiteForm">
                         <div class="mb-3">
-                            <label class="form-label">aaPanel API URL</label>
-                            <input type="text" class="form-control" name="api_url" required placeholder="http://IP:8888">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">API Key</label>
-                            <input type="text" class="form-control" name="api_key" required placeholder="API Key từ aaPanel">
-                        </div>
-                        <div class="mb-3 d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-primary" id="btnTestApi">Kiểm tra kết nối</button>
-                            <button type="button" class="btn btn-outline-secondary" id="btnGetSites">Lấy danh sách site</button>
-                        </div>
-                        <div id="siteListBox" class="mb-3"></div>
-
-                        <div class="mb-3">
                             <label class="form-label">Danh sách domain cần xóa (mỗi dòng 1 domain)</label>
                             <textarea class="form-control" name="domains" rows="8" required
                                 placeholder="example.com&#10;site2.net&#10;www.site3.vn"></textarea>
                             <div class="small mt-1" style="color:#ffcc00;">
-                                Hỗ trợ xuống dòng, dấu phẩy hoặc khoảng trắng. Tự động bỏ http/https và www.
+                                Hỗ trợ xuống dòng, dấu phẩy hoặc khoảng trắng. Tự động bỏ http/https và www. Chỉ cần nhập domain, hệ thống sẽ tìm VPS tương ứng trong <strong>vps.json</strong> và xóa website trên VPS đó.
                             </div>
                         </div>
 
@@ -406,20 +496,9 @@ if (file_exists($vpsFile)) {
 </div>
 
 <script>
-document.querySelectorAll('.vps-row').forEach(function(row) {
-    row.addEventListener('click', function() {
-        const apiUrl = this.getAttribute('data-api-url') || '';
-        const apiKey = this.getAttribute('data-api-key') || '';
-        if (apiUrl) document.querySelector('input[name="api_url"]').value = apiUrl;
-        if (apiKey) document.querySelector('input[name="api_key"]').value = apiKey;
-    });
-});
-
 function getFormValues() {
     const form = document.getElementById('deleteSiteForm');
     return {
-        api_url: form.api_url.value.trim(),
-        api_key: form.api_key.value.trim(),
         domains: form.domains.value.trim(),
         delete_ftp: form.delete_ftp.checked ? '1' : '',
         delete_database: form.delete_database.checked ? '1' : '',
@@ -437,39 +516,6 @@ async function postAction(action, extra = {}) {
     });
     return res.json();
 }
-
-document.getElementById('btnTestApi').onclick = async function() {
-    const box = document.getElementById('resultBox');
-    box.innerHTML = '<span class="result-warn">Đang kiểm tra kết nối...</span>';
-    try {
-        const data = await postAction('test_connection');
-        box.innerHTML = data.success
-            ? '<span class="result-success">' + (data.msg || 'OK') + '</span>'
-            : '<span class="result-error">' + (data.msg || 'Lỗi') + '</span>';
-    } catch (e) {
-        box.innerHTML = '<span class="result-error">Lỗi kết nối</span>';
-    }
-};
-
-document.getElementById('btnGetSites').onclick = async function() {
-    const box = document.getElementById('siteListBox');
-    box.innerHTML = '<span class="result-warn">Đang lấy danh sách site...</span>';
-    try {
-        const data = await postAction('get_site_list');
-        if (!data.site_table || !data.site_table.length) {
-            box.innerHTML = '<span class="result-error">' + (data.msg || 'Không có site') + '</span>';
-            return;
-        }
-        let html = '<table class="table table-sm table-bordered"><thead><tr><th>ID</th><th>Domain</th></tr></thead><tbody>';
-        data.site_table.forEach(function(row) {
-            html += '<tr><td>' + row.s_id + '</td><td>' + row.domain + '</td></tr>';
-        });
-        html += '</tbody></table>';
-        box.innerHTML = html;
-    } catch (e) {
-        box.innerHTML = '<span class="result-error">Lỗi khi lấy danh sách site</span>';
-    }
-};
 
 document.getElementById('deleteSiteForm').onsubmit = async function(e) {
     e.preventDefault();
