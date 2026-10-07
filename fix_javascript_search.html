@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🔧 Fix: JavaScript không hiển thị kết quả search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .fix-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #28a745; }
+        .console-output { background: #1e2124; color: #00ff41; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>🔧 Fix: JavaScript không hiển thị kết quả</h1>
+        
+        <div class="fix-panel">
+            <h3>✅ Phân tích vấn đề</h3>
+            <div class="alert alert-success">
+                <h5><strong>Kết quả phân tích:</strong></h5>
+                <ul>
+                    <li>✅ <strong>API hoạt động bình thường</strong> - trả về đúng kết quả cho "68winplay.com"</li>
+                    <li>✅ <strong>Domain tồn tại</strong> - status: active, plan: Free Website</li>
+                    <li>❌ <strong>Frontend JavaScript</strong> - không hiển thị kết quả</li>
+                </ul>
+                
+                <h5><strong>Nguyên nhân khả năng cao:</strong></h5>
+                <ul>
+                    <li>🔍 JavaScript không được trigger từ URL parameters</li>
+                    <li>🎯 Auto-search không hoạt động với URL có query</li>
+                    <li>📄 Form submit logic có vấn đề</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fix-panel">
+            <h3>🔧 Test và Debug</h3>
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="testURLParsing()">
+                    🧪 Test URL Parameter Parsing
+                </button>
+                <button class="btn btn-info" onclick="testDirectAPI()">
+                    📡 Test API trực tiếp
+                </button>
+                <button class="btn btn-success" onclick="testJavaScriptExecution()">
+                    ⚡ Test JavaScript Execution
+                </button>
+                <button class="btn btn-warning" onclick="simulateSearch()">
+                    🎯 Simulate Search
+                </button>
+            </div>
+            
+            <div id="debugConsole" class="console-output">
+=== Debug Console ===
+Sẵn sàng debug vấn đề JavaScript...
+
+            </div>
+        </div>
+
+        <div class="fix-panel">
+            <h3>🎯 Direct Test Links</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🔗 Test Search:</h5>
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search&q=68winplay.com" class="btn btn-primary" target="_blank" onclick="logClick('Normal search link')">
+                            🌐 Normal Search (68winplay.com)
+                        </a>
+                        <a href="index.php?action=search&q=" class="btn btn-info" target="_blank" onclick="logClick('Empty search link')">
+                            📋 Empty Search (load all)
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>🧪 Manual Test:</h5>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" onclick="manualSearch()">
+                            🎯 Manual Search trong frame
+                        </button>
+                        <button class="btn btn-warning" onclick="openDevTools()">
+                            🔧 Hướng dẫn mở DevTools
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Frame -->
+        <div class="fix-panel" id="frameContainer" style="display: none;">
+            <h3>🖼️ Test Frame</h3>
+            <iframe id="testFrame" src="" style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 8px;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const debugConsole = document.getElementById('debugConsole');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+            const icon = icons[type] || 'ℹ️';
+            
+            debugConsole.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function testURLParsing() {
+            log('🧪 Testing URL parameter parsing...', 'info');
+            
+            const testURL = 'index.php?action=search&q=68winplay.com&status=&per_page=20&use_cache=on';
+            const url = new URL(testURL, window.location.origin);
+            const params = new URLSearchParams(url.search);
+            
+            log(`📄 Test URL: ${testURL}`, 'info');
+            log(`🔍 Parsed parameters:`, 'info');
+            log(`   - action: "${params.get('action')}"`, 'info');
+            log(`   - q: "${params.get('q')}"`, 'info');
+            log(`   - status: "${params.get('status')}"`, 'info');
+            log(`   - per_page: "${params.get('per_page')}"`, 'info');
+            log(`   - use_cache: "${params.get('use_cache')}"`, 'info');
+            
+            if (params.get('q') === '68winplay.com') {
+                log('✅ URL parsing hoạt động đúng', 'success');
+            } else {
+                log('❌ URL parsing có vấn đề', 'error');
+            }
+        }
+
+        async function testDirectAPI() {
+            log('📡 Testing API trực tiếp...', 'info');
+            
+            try {
+                const apiURL = 'index.php?action=search&api=1&q=68winplay.com&per_page=20';
+                log(`🔗 API URL: ${apiURL}`, 'info');
+                
+                const response = await fetch(apiURL);
+                log(`📊 Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const data = await response.json();
+                log(`📄 Response success: ${data.success}`, 'info');
+                log(`📊 Results count: ${data.data?.result?.length || 0}`, 'info');
+                
+                if (data.success && data.data?.result?.length > 0) {
+                    log(`✅ API trả về kết quả cho 68winplay.com`, 'success');
+                    log(`🌐 Domain: ${data.data.result[0].name} (${data.data.result[0].status})`, 'success');
+                } else {
+                    log(`⚠️ API không trả về kết quả`, 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ API test error: ${error.message}`, 'error');
+            }
+        }
+
+        function testJavaScriptExecution() {
+            log('⚡ Testing JavaScript execution...', 'info');
+            
+            // Test basic JavaScript capabilities
+            log('🧪 Testing basic JavaScript...', 'info');
+            
+            try {
+                // Test URLSearchParams
+                const params = new URLSearchParams('?q=test&status=active');
+                log(`✅ URLSearchParams hoạt động: q=${params.get('q')}`, 'success');
+                
+                // Test fetch availability
+                if (typeof fetch === 'function') {
+                    log('✅ Fetch API available', 'success');
+                } else {
+                    log('❌ Fetch API not available', 'error');
+                }
+                
+                // Test DOM manipulation
+                const testDiv = document.createElement('div');
+                testDiv.innerHTML = '<p>Test</p>';
+                if (testDiv.querySelector('p')) {
+                    log('✅ DOM manipulation hoạt động', 'success');
+                } else {
+                    log('❌ DOM manipulation có vấn đề', 'error');
+                }
+                
+                // Test localStorage
+                try {
+                    localStorage.setItem('test', 'value');
+                    if (localStorage.getItem('test') === 'value') {
+                        log('✅ LocalStorage hoạt động', 'success');
+                        localStorage.removeItem('test');
+                    }
+                } catch (e) {
+                    log(`⚠️ LocalStorage có vấn đề: ${e.message}`, 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ JavaScript execution error: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateSearch() {
+            log('🎯 Simulating search process...', 'info');
+            
+            try {
+                // Simulate what should happen when URL has q=68winplay.com
+                log('1️⃣ Step 1: Parse URL parameters', 'info');
+                const mockParams = new URLSearchParams('?action=search&q=68winplay.com&per_page=20');
+                const query = mockParams.get('q');
+                const perPage = mockParams.get('per_page');
+                
+                log(`   📋 Query: "${query}"`, 'info');
+                log(`   📊 Per page: ${perPage}`, 'info');
+                
+                log('2️⃣ Step 2: Build API request', 'info');
+                const apiParams = new URLSearchParams({
+                    action: 'search',
+                    api: '1',
+                    q: query,
+                    per_page: perPage,
+                    page: 1
+                });
+                
+                const apiURL = `index.php?${apiParams.toString()}`;
+                log(`   🔗 API URL: ${apiURL}`, 'info');
+                
+                log('3️⃣ Step 3: Call API', 'info');
+                const response = await fetch(apiURL);
+                const data = await response.json();
+                
+                log(`   📊 Response: success=${data.success}, results=${data.data?.result?.length || 0}`, 'info');
+                
+                log('4️⃣ Step 4: Render results', 'info');
+                if (data.success && data.data?.result?.length > 0) {
+                    const domain = data.data.result[0];
+                    log(`   🌐 Should render: ${domain.name} (${domain.status})`, 'success');
+                    log('✅ Simulation thành công - API trả về đúng dữ liệu', 'success');
+                    log('💡 Vấn đề: Frontend JavaScript không render hoặc không được trigger', 'warning');
+                } else {
+                    log('❌ Simulation thất bại - API không trả về dữ liệu', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Simulation error: ${error.message}`, 'error');
+            }
+        }
+
+        function manualSearch() {
+            log('🎯 Mở search page trong frame...', 'info');
+            
+            const frameContainer = document.getElementById('frameContainer');
+            const frame = document.getElementById('testFrame');
+            
+            frame.src = 'index.php?action=search&q=68winplay.com&per_page=20';
+            frameContainer.style.display = 'block';
+            
+            log('📱 Frame opened với URL có parameters', 'success');
+            log('👀 Quan sát frame để xem có hiển thị kết quả không', 'info');
+            log('🔧 Nếu không có kết quả → vấn đề là JavaScript không được trigger', 'warning');
+        }
+
+        function openDevTools() {
+            log('🔧 Hướng dẫn mở Developer Tools:', 'info');
+            log('1. Mở search page trong tab mới', 'info');
+            log('2. Nhấn F12 hoặc Ctrl+Shift+I', 'info');
+            log('3. Chuyển sang tab Console', 'info');
+            log('4. Kiểm tra có error message không', 'info');
+            log('5. Search "68winplay.com" và xem Console output', 'info');
+            
+            setTimeout(() => {
+                window.open('index.php?action=search&q=68winplay.com', '_blank');
+            }, 2000);
+        }
+
+        function logClick(action) {
+            log(`🔗 Clicked: ${action}`, 'info');
+        }
+
+        // Auto-run tests when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                log('🚀 Debug page loaded', 'success');
+                log('💡 Bắt đầu auto-tests...', 'info');
+                testURLParsing();
+                setTimeout(() => testDirectAPI(), 1000);
+                setTimeout(() => testJavaScriptExecution(), 2000);
+            }, 500);
+        };
+    </script>
+</body>
+</html>

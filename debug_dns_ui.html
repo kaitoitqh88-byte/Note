@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐛 Debug DNS API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .debug-card { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .debug-output { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; font-size: 14px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .step { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px; margin: 10px 0; }
+        .step.success { background: #e8f5e8; border-color: #4caf50; }
+        .step.error { background: #ffebee; border-color: #f44336; }
+        .api-url { background: #fff3e0; padding: 8px; border-radius: 4px; font-family: monospace; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="debug-card p-4">
+            <h2>🐛 Debug Cloudflare DNS API - darleydale.uk.com</h2>
+            <p>Real-time debugging để tìm vấn đề với DNS lookup</p>
+            
+            <!-- Test Buttons -->
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="testStep1()">
+                    <i class="fas fa-play"></i> Step 1: Test API Connection
+                </button>
+                <button class="btn btn-success" onclick="testStep2()">
+                    <i class="fas fa-search"></i> Step 2: Find Zone
+                </button>
+                <button class="btn btn-warning" onclick="testStep3()">
+                    <i class="fas fa-server"></i> Step 3: Get DNS Records
+                </button>
+                <button class="btn btn-info" onclick="testFullFunction()">
+                    <i class="fas fa-cogs"></i> Test Full Function
+                </button>
+                <button class="btn btn-danger" onclick="testDebugEndpoint()">
+                    <i class="fas fa-bug"></i> Debug Endpoint
+                </button>
+                <button class="btn btn-secondary" onclick="clearDebug()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+            
+            <!-- Debug Output -->
+            <div id="debugOutput" class="debug-output">Click buttons above để debug từng step...</div>
+            
+            <!-- Quick Links -->
+            <div class="mt-3">
+                <h6>Quick Debug Links:</h6>
+                <div class="api-url mb-2">
+                    <strong>Direct API:</strong> 
+                    <a href="/Note/index.php?action=cloudflare-dns&domain=darleydale.uk.com&include_proxied=true" target="_blank">
+                        /Note/index.php?action=cloudflare-dns&domain=darleydale.uk.com&include_proxied=true
+                    </a>
+                </div>
+                <div class="api-url mb-2">
+                    <strong>Backend Debug:</strong> 
+                    <a href="/Note/debug_darleydale.php" target="_blank">
+                        /Note/debug_darleydale.php
+                    </a>
+                </div>
+                <div class="api-url mb-2">
+                    <strong>List All Domains:</strong> 
+                    <a href="/Note/index.php?action=cloudflare-dns&_list_domains=1" target="_blank">
+                        /Note/index.php?action=cloudflare-dns&_list_domains=1
+                    </a>
+                </div>
+                <div class="api-url">
+                    <strong>Debug Endpoint:</strong> 
+                    <a href="/Note/index.php?action=cloudflare-dns&_debug=1&domain=darleydale.uk.com" target="_blank">
+                        /Note/index.php?action=cloudflare-dns&_debug=1&domain=darleydale.uk.com
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const domain = 'darleydale.uk.com';
+        let debugLog = '';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const line = `[${timestamp}] ${prefix} ${message}`;
+            debugLog += line + '\n';
+            document.getElementById('debugOutput').textContent = debugLog;
+            document.getElementById('debugOutput').scrollTop = document.getElementById('debugOutput').scrollHeight;
+        }
+        
+        function clearDebug() {
+            debugLog = '';
+            document.getElementById('debugOutput').textContent = 'Debug log cleared...';
+        }
+        
+        async function testStep1() {
+            log('=== STEP 1: Testing API Connection ===');
+            try {
+                const response = await fetch('/Note/index.php?action=cloudflare-dns&_list_domains=1');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`API Connection: SUCCESS (Found ${data.domains.length} domains)`, 'success');
+                    log(`Available domains: ${data.domains.map(d => d.name).join(', ')}`);
+                    
+                    const targetFound = data.domains.find(d => d.name === domain);
+                    if (targetFound) {
+                        log(`Target domain ${domain} found in account!`, 'success');
+                        log(`Zone ID: ${targetFound.id}, Status: ${targetFound.status}`);
+                        window.targetZoneId = targetFound.id;
+                    } else {
+                        log(`Target domain ${domain} NOT found in account!`, 'error');
+                    }
+                } else {
+                    log(`API Connection: FAILED - ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`API Connection: ERROR - ${error.message}`, 'error');
+            }
+        }
+        
+        async function testStep2() {
+            log('=== STEP 2: Finding Zone for Domain ===');
+            try {
+                // We'll use our backend debug script
+                const response = await fetch('/Note/debug_darleydale.php');
+                const text = await response.text();
+                
+                if (text.includes('FOUND TARGET ZONE')) {
+                    log('Zone lookup: SUCCESS', 'success');
+                    const match = text.match(/FOUND TARGET ZONE! ID: ([a-zA-Z0-9]+)/);
+                    if (match) {
+                        window.targetZoneId = match[1];
+                        log(`Zone ID extracted: ${window.targetZoneId}`);
+                    }
+                } else if (text.includes('Zone for')) {
+                    log('Zone lookup: FAILED - Domain not found', 'error');
+                    log('Check backend debug output for available domains');
+                } else {
+                    log('Zone lookup: Unexpected response', 'warning');
+                }
+                
+                // Show partial backend output
+                const lines = text.split('\n').slice(0, 20);
+                log('Backend output (first 20 lines):');
+                lines.forEach(line => {
+                    if (line.trim()) log(`  ${line.trim()}`);
+                });
+                
+            } catch (error) {
+                log(`Zone lookup: ERROR - ${error.message}`, 'error');
+            }
+        }
+        
+        async function testStep3() {
+            log('=== STEP 3: Getting DNS Records ===');
+            if (!window.targetZoneId) {
+                log('No zone ID available. Run Step 2 first.', 'warning');
+                return;
+            }
+            
+            try {
+                // Test raw API call
+                const url = `/Note/index.php?action=cloudflare-dns&domain=${domain}&include_proxied=true`;
+                log(`Making API call: ${url}`);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                log(`API Response received. Success: ${data.success}`);
+                
+                if (data.success) {
+                    const records = data.data.cloudflare_records;
+                    const stats = data.data.statistics;
+                    
+                    log(`DNS Records: SUCCESS`, 'success');
+                    log(`Total records: ${stats.total_records}`);
+                    log(`Proxied records: ${stats.proxied_records}`);
+                    log(`DNS-only records: ${stats.dns_only_records}`);
+                    
+                    log('Record types found:');
+                    Object.keys(records).forEach(type => {
+                        log(`  ${type}: ${records[type].length} records`);
+                    });
+                    
+                    // Check for expected records
+                    log('Checking expected records...');
+                    
+                    // A Record check
+                    if (records.A) {
+                        const aRecord = records.A.find(r => r.name === domain && r.content === '103.213.216.110');
+                        if (aRecord) {
+                            log(`✓ A record found: ${domain} -> 103.213.216.110 (Proxied: ${aRecord.proxied})`, 'success');
+                        } else {
+                            log(`✗ Expected A record not found`, 'error');
+                            log(`Available A records: ${records.A.map(r => `${r.name} -> ${r.content}`).join(', ')}`);
+                        }
+                    } else {
+                        log('✗ No A records found', 'error');
+                    }
+                    
+                    // CNAME Record check
+                    if (records.CNAME) {
+                        const cnameRecord = records.CNAME.find(r => 
+                            r.name === `www.${domain}` && r.content === domain
+                        );
+                        if (cnameRecord) {
+                            log(`✓ CNAME record found: www.${domain} -> ${domain} (Proxied: ${cnameRecord.proxied})`, 'success');
+                        } else {
+                            log(`✗ Expected CNAME record not found`, 'error');
+                            log(`Available CNAME records: ${records.CNAME.map(r => `${r.name} -> ${r.content}`).join(', ')}`);
+                        }
+                    } else {
+                        log('✗ No CNAME records found', 'error');
+                    }
+                    
+                } else {
+                    log(`DNS Records: FAILED - ${data.error}`, 'error');
+                    if (data.debug) {
+                        log(`Debug info: ${JSON.stringify(data.debug)}`);
+                    }
+                }
+                
+            } catch (error) {
+                log(`DNS Records: ERROR - ${error.message}`, 'error');
+            }
+        }
+        
+        async function testFullFunction() {
+            log('=== TESTING FULL FUNCTION ===');
+            log('Running all steps in sequence...');
+            
+            await testStep1();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testStep2();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testStep3();
+            
+            log('=== FULL TEST COMPLETE ===', 'success');
+        }
+        
+        async function testDebugEndpoint() {
+            log('=== USING DEBUG ENDPOINT ===');
+            try {
+                const url = `/Note/index.php?action=cloudflare-dns&_debug=1&domain=${domain}`;
+                log(`Making debug API call: ${url}`);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('DEBUG ENDPOINT: SUCCESS', 'success');
+                    
+                    const debug = data.debug;
+                    const summary = data.summary;
+                    
+                    log(`Summary: API=${summary.api_connection}, Zone=${summary.zone_found}, Records=${summary.records_retrieved}`);
+                    log(`Expected A Record: ${summary.expected_a_record}`);
+                    log(`Expected CNAME Record: ${summary.expected_cname_record}`);
+                    
+                    log('\nDetailed Debug Info:');
+                    log(`Step 1: ${debug.step_1_api_connection}`);
+                    log(`Step 2: ${debug.step_2_zone_search}`);
+                    log(`Step 3: ${debug.step_3_dns_records}`);
+                    
+                    if (debug.available_zones) {
+                        log(`Available zones: ${debug.available_zones.map(z => z.name).join(', ')}`);
+                    }
+                    
+                    if (debug.target_zone) {
+                        log(`Target zone: ${debug.target_zone.name} (ID: ${debug.target_zone.id})`);
+                    }
+                    
+                    log(`\nRecords by type:`);
+                    Object.keys(debug.records_by_type).forEach(type => {
+                        log(`  ${type}: ${debug.records_by_type[type].length} records`);
+                    });
+                    
+                    log('\nExpected Record Check:');
+                    Object.keys(debug.record_check).forEach(type => {
+                        const check = debug.record_check[type];
+                        log(`  ${type}: ${check.status}`, check.status === 'FOUND' && check.matches ? 'success' : 'error');
+                        if (check.status === 'FOUND') {
+                            log(`    Expected: ${check.expected.name} -> ${check.expected.content} (Proxied: ${check.expected.proxied})`);
+                            log(`    Actual: ${check.actual.name} -> ${check.actual.content} (Proxied: ${check.actual.proxied})`);
+                            log(`    Match: ${check.matches ? 'YES' : 'NO'}`, check.matches ? 'success' : 'warning');
+                        } else if (check.status === 'NOT_FOUND' && check.available) {
+                            log(`    Available ${type} records: ${check.available.map(r => r.name + ' -> ' + r.content).join(', ')}`);
+                        }
+                    });
+                    
+                } else {
+                    log(`DEBUG ENDPOINT: FAILED - ${data.error}`, 'error');
+                    if (data.debug) {
+                        log('Partial debug info:');
+                        Object.keys(data.debug).forEach(key => {
+                            log(`  ${key}: ${JSON.stringify(data.debug[key])}`);
+                        });
+                    }
+                }
+                
+            } catch (error) {
+                log(`DEBUG ENDPOINT: ERROR - ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-start
+        setTimeout(() => {
+            log('🚀 DNS Debug Tool Ready');
+            log('Click buttons above để test từng step hoặc run full test');
+        }, 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Stop SSL Check</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h3>Test Stop SSL Check Functionality</h3>
+                <div class="mb-3">
+                    <button class="btn btn-outline-info" type="button" onclick="recheckAllSSLStatus()" title="Kiểm tra lại trạng thái Always Use HTTPS của tất cả domains" id="recheck-ssl-btn">
+                        <i class="fas fa-sync-alt"></i> Recheck
+                    </button>
+                    <button class="btn btn-outline-secondary d-none" type="button" onclick="stopSSLCheck()" title="Dừng kiểm tra Always Use HTTPS" id="stop-ssl-btn">
+                        <i class="fas fa-stop"></i> Stop Check
+                    </button>
+                </div>
+                <div id="ssl-progress-indicator" class="d-none">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold">🔍 Kiểm tra Always Use HTTPS</span>
+                                <span class="badge bg-primary" id="ssl-progress-count">0/0</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar" id="ssl-progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted" id="ssl-current-domain">Đang khởi động...</small>
+                        </div>
+                    </div>
+                </div>
+                <div id="notification-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data and variables for testing
+        let allZones = [
+            { id: 1, name: 'example1.com' },
+            { id: 2, name: 'example2.com' },
+            { id: 3, name: 'example3.com' }
+        ];
+        let sslSettingsCache = {};
+        let isSSLChecking = false;
+        let sslCheckingController = null;
+        let currentSSLCheckIndex = 0;
+        let totalSSLCheckZones = 0;
+
+        // Mock functions
+        function showNotification(type, message) {
+            const container = document.getElementById('notification-container');
+            container.innerHTML = `<div class="alert alert-${type === 'warning' ? 'warning' : 'info'}">${message}</div>`;
+        }
+
+        function showSSLProgressIndicator(total) {
+            document.getElementById('ssl-progress-indicator').classList.remove('d-none');
+            document.getElementById('ssl-progress-count').textContent = `0/${total}`;
+        }
+
+        function updateSSLProgressIndicator(current, total, currentDomain) {
+            document.getElementById('ssl-progress-count').textContent = `${current}/${total}`;
+            document.getElementById('ssl-progress-bar').style.width = `${(current / total) * 100}%`;
+            document.getElementById('ssl-current-domain').textContent = `Đang kiểm tra: ${currentDomain}`;
+        }
+
+        function hideSSLProgressIndicator() {
+            document.getElementById('ssl-progress-indicator').classList.add('d-none');
+        }
+
+        function updateHTTPSButtonState(zoneId) { /* Mock */ }
+        function updateHTTPSStatusDisplay(zoneId) { /* Mock */ }
+        function updateHTTPSStatistics() { /* Mock */ }
+
+        // Main test functions
+        async function recheckAllSSLStatus() {
+            if (!allZones || allZones.length === 0) {
+                alert('Không có domain nào để kiểm tra. Vui lòng tải lại trang.');
+                return;
+            }
+            
+            if (isSSLChecking) {
+                alert('Kiểm tra SSL đang diễn ra. Vui lòng chờ hoặc nhấn "Stop Check" để dừng.');
+                return;
+            }
+            
+            // Set SSL checking state
+            isSSLChecking = true;
+            currentSSLCheckIndex = 0;
+            totalSSLCheckZones = allZones.length;
+            sslCheckingController = new AbortController();
+            
+            // Update UI for SSL checking state
+            const recheckBtn = document.getElementById('recheck-ssl-btn');
+            const stopBtn = document.getElementById('stop-ssl-btn');
+            
+            if (recheckBtn) {
+                recheckBtn.disabled = true;
+                recheckBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            }
+            
+            if (stopBtn) {
+                stopBtn.classList.remove('d-none');
+            }
+            
+            try {
+                // Clear existing cache
+                sslSettingsCache = {};
+                
+                // Simulate loading with progress
+                await loadSSLSettingsForZonesWithStop(allZones, sslCheckingController.signal);
+                
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('SSL checking was stopped by user');
+                } else {
+                    console.error('Error during SSL checking:', error);
+                }
+            } finally {
+                // Reset SSL checking state
+                isSSLChecking = false;
+                sslCheckingController = null;
+                currentSSLCheckIndex = 0;
+                totalSSLCheckZones = 0;
+                
+                // Reset UI
+                if (recheckBtn) {
+                    recheckBtn.disabled = false;
+                    recheckBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Recheck';
+                }
+                
+                if (stopBtn) {
+                    stopBtn.classList.add('d-none');
+                }
+            }
+        }
+
+        function stopSSLCheck() {
+            if (!isSSLChecking) {
+                return;
+            }
+            
+            const confirmStop = confirm(`Dừng kiểm tra Always Use HTTPS?\n\nTiến độ hiện tại: ${currentSSLCheckIndex}/${totalSSLCheckZones} domain\n\n⚠️ Lưu ý:\n- Các domain đã kiểm tra sẽ giữ kết quả\n- Các domain chưa kiểm tra sẽ hiển thị "Error"\n\nBạn có chắc muốn dừng?`);
+            
+            if (!confirmStop) {
+                return;
+            }
+            
+            // Abort the SSL checking process
+            if (sslCheckingController) {
+                sslCheckingController.abort();
+            }
+            
+            showNotification('warning', `🚫 Kiểm tra SSL đã dừng tại ${currentSSLCheckIndex}/${totalSSLCheckZones} domain`);
+        }
+
+        // Mock SSL checking with stop capability
+        async function loadSSLSettingsForZonesWithStop(zones, abortSignal) {
+            if (!zones || zones.length === 0) return;
+            
+            // Show progress indicator
+            showSSLProgressIndicator(zones.length);
+            
+            // Process zones sequentially to avoid rate limits
+            for (let i = 0; i < zones.length; i++) {
+                // Check if the operation was aborted
+                if (abortSignal && abortSignal.aborted) {
+                    console.log('SSL checking aborted');
+                    break;
+                }
+                
+                const zone = zones[i];
+                currentSSLCheckIndex = i; // Update current index for stop functionality
+                
+                try {
+                    // Update progress
+                    updateSSLProgressIndicator(i + 1, zones.length, zone.name);
+                    
+                    // Simulate API call with delay
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(resolve, 1000);
+                        
+                        // Listen for abort signal
+                        if (abortSignal) {
+                            abortSignal.addEventListener('abort', () => {
+                                clearTimeout(timeout);
+                                reject(new DOMException('Aborted', 'AbortError'));
+                            });
+                        }
+                    });
+                    
+                    // Check again after async operation
+                    if (abortSignal && abortSignal.aborted) {
+                        console.log('SSL checking aborted after fetch');
+                        break;
+                    }
+                    
+                    // Mock successful result
+                    sslSettingsCache[zone.id] = {
+                        always_use_https: Math.random() > 0.5,
+                        loaded: true
+                    };
+                    
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('SSL checking aborted during fetch');
+                        break;
+                    }
+                    console.warn(`Failed to load SSL settings for ${zone.name}:`, error);
+                    sslSettingsCache[zone.id] = { always_use_https: false, loaded: false };
+                }
+                
+                // Add delay between requests to avoid rate limits (except for last item)
+                if (i < zones.length - 1) {
+                    // Check abort signal before delay
+                    if (abortSignal && abortSignal.aborted) {
+                        break;
+                    }
+                    
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(resolve, 500);
+                        
+                        if (abortSignal) {
+                            abortSignal.addEventListener('abort', () => {
+                                clearTimeout(timeout);
+                                reject(new DOMException('Aborted', 'AbortError'));
+                            });
+                        }
+                    });
+                }
+            }
+            
+            // Hide progress indicator (even if stopped)
+            hideSSLProgressIndicator();
+        }
+
+        console.log('Test page loaded successfully. JavaScript functions are working.');
+    </script>
+</body>
+</html>

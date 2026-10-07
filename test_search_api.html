@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Search API</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; margin: 40px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test Search API</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Basic Search API Call</h3>
+        <button onclick="testBasicSearch()">Test Basic Search</button>
+        <div id="result1" class="result">Click button to test...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: Search with Query</h3>
+        <input type="text" id="searchQuery" placeholder="Enter domain to search">
+        <button onclick="testSearchWithQuery()">Test Search</button>
+        <div id="result2" class="result">Enter query and click button to test...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Search HTML Page</h3>
+        <button onclick="testSearchHTML()">Test HTML Page</button>
+        <div id="result3" class="result">Click button to test...</div>
+    </div>
+
+    <script>
+        function makeAPICall(url, resultElement) {
+            resultElement.innerHTML = 'Loading...';
+            resultElement.className = 'result';
+            
+            fetch(url)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (contentType.includes('application/json')) {
+                        return response.json().then(data => ({type: 'json', data}));
+                    } else {
+                        return response.text().then(data => ({type: 'html', data}));
+                    }
+                })
+                .then(result => {
+                    if (result.type === 'json') {
+                        resultElement.innerHTML = '<div class="success">JSON Response:</div><pre>' + 
+                            JSON.stringify(result.data, null, 2) + '</pre>';
+                        resultElement.className = 'result success';
+                    } else {
+                        resultElement.innerHTML = '<div class="success">HTML Response (length: ' + 
+                            result.data.length + '):</div><div style="max-height: 200px; overflow: auto;"><pre>' + 
+                            result.data.substring(0, 500) + (result.data.length > 500 ? '...' : '') + '</pre></div>';
+                        resultElement.className = 'result success';
+                    }
+                })
+                .catch(error => {
+                    resultElement.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+                    resultElement.className = 'result error';
+                    console.error('Error:', error);
+                });
+        }
+        
+        function testBasicSearch() {
+            const url = '?action=search&api=1&q=&page=1&per_page=5';
+            makeAPICall(url, document.getElementById('result1'));
+        }
+        
+        function testSearchWithQuery() {
+            const query = document.getElementById('searchQuery').value;
+            const url = `?action=search&api=1&q=${encodeURIComponent(query)}&page=1&per_page=10`;
+            makeAPICall(url, document.getElementById('result2'));
+        }
+        
+        function testSearchHTML() {
+            const url = '?action=search';
+            makeAPICall(url, document.getElementById('result3'));
+        }
+        
+        // Auto test basic search on page load
+        window.onload = function() {
+            console.log('Auto-testing basic search API call...');
+            testBasicSearch();
+        };
+    </script>
+</body>
+</html>

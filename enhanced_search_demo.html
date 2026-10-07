@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Enhanced Cloudflare Domain Search API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; }
+        .container { margin-top: 20px; }
+        .card { border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .test-card { margin-bottom: 20px; transition: transform 0.2s; }
+        .test-card:hover { transform: translateY(-5px); }
+        .result-container { max-height: 400px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 15px; }
+        .feature-badge { font-size: 0.8em; margin: 2px; }
+        .api-response { font-family: 'Roboto Mono', monospace; font-size: 0.9em; }
+        .stats-card { background: linear-gradient(45deg, #28a745, #20c997); color: white; }
+        .export-card { background: linear-gradient(45deg, #fd7e14, #e83e8c); color: white; }
+        .filter-card { background: linear-gradient(45deg, #6f42c1, #007bff); color: white; }
+        .btn-custom { border-radius: 25px; padding: 8px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card text-center mb-4">
+                    <div class="card-body">
+                        <h1 class="card-title">
+                            <i class="fas fa-search text-primary me-2"></i>
+                            Enhanced Cloudflare Domain Search API
+                        </h1>
+                        <p class="card-text">Comprehensive testing dashboard for advanced search features</p>
+                        <div class="d-flex justify-content-center flex-wrap">
+                            <span class="badge bg-success feature-badge">Advanced Filtering</span>
+                            <span class="badge bg-warning feature-badge">Custom Sorting</span>
+                            <span class="badge bg-info feature-badge">Domain Statistics</span>
+                            <span class="badge bg-danger feature-badge">Export (CSV/JSON/XML)</span>
+                            <span class="badge bg-secondary feature-badge">Caching</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Basic Search Tests -->
+            <div class="col-lg-6">
+                <div class="card test-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="fas fa-search me-2"></i>Basic Search Tests</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary btn-custom" onclick="testBasicSearch()">
+                            <i class="fas fa-list me-1"></i>All Domains
+                        </button>
+                        <button class="btn btn-outline-success btn-custom" onclick="testSearchQuery()">
+                            <i class="fas fa-filter me-1"></i>With Query
+                        </button>
+                        <button class="btn btn-outline-info btn-custom" onclick="testPagination()">
+                            <i class="fas fa-pages me-1"></i>Pagination
+                        </button>
+                        <div id="basic-result" class="result-container mt-3">
+                            Click a button to test basic search functionality...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Features -->
+            <div class="col-lg-6">
+                <div class="card test-card filter-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-magic me-2"></i>Advanced Filtering & Sorting</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-light btn-custom" onclick="testAdvancedFiltering()">
+                            <i class="fas fa-filter me-1"></i>Name Pattern
+                        </button>
+                        <button class="btn btn-light btn-custom" onclick="testDomainTypes()">
+                            <i class="fas fa-tags me-1"></i>Domain Types
+                        </button>
+                        <button class="btn btn-light btn-custom" onclick="testSorting()">
+                            <i class="fas fa-sort me-1"></i>Custom Sort
+                        </button>
+                        <div id="advanced-result" class="result-container mt-3">
+                            Test advanced filtering and sorting features...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Statistics -->
+            <div class="col-lg-6">
+                <div class="card test-card stats-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Domain Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-light btn-custom" onclick="testStatistics()">
+                            <i class="fas fa-chart-pie me-1"></i>Get Statistics
+                        </button>
+                        <button class="btn btn-light btn-custom" onclick="testBreakdown()">
+                            <i class="fas fa-chart-line me-1"></i>Detailed Breakdown
+                        </button>
+                        <div id="stats-result" class="result-container mt-3">
+                            Get comprehensive domain statistics and breakdowns...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Features -->
+            <div class="col-lg-6">
+                <div class="card test-card export-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-download me-2"></i>Export Functionality</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-light btn-custom" onclick="testCSVExport()">
+                            <i class="fas fa-file-csv me-1"></i>CSV Export
+                        </button>
+                        <button class="btn btn-light btn-custom" onclick="testJSONExport()">
+                            <i class="fas fa-file-code me-1"></i>JSON Export
+                        </button>
+                        <button class="btn btn-light btn-custom" onclick="testXMLExport()">
+                            <i class="fas fa-file-alt me-1"></i>XML Export
+                        </button>
+                        <div id="export-result" class="result-container mt-3">
+                            Test data export in different formats...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance & Cache Tests -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card test-card">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="fas fa-rocket me-2"></i>Performance & Cache Tests</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-info btn-custom w-100" onclick="testCachePerformance()">
+                                    <i class="fas fa-database me-1"></i>Cache Performance
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-warning btn-custom w-100" onclick="testBulkSearch()">
+                                    <i class="fas fa-search-plus me-1"></i>Bulk Search
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-success btn-custom w-100" onclick="testAPIStats()">
+                                    <i class="fas fa-chart-area me-1"></i>API Statistics
+                                </button>
+                            </div>
+                        </div>
+                        <div id="performance-result" class="result-container mt-3">
+                            Test API performance, caching, and bulk operations...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseURL = '';
+        
+        function makeAPICall(url, resultElementId, description, options = {}) {
+            const resultElement = document.getElementById(resultElementId);
+            resultElement.innerHTML = `<div class="text-info"><i class="fas fa-spinner fa-spin me-2"></i>${description}...</div>`;
+            
+            const startTime = Date.now();
+            
+            fetch(url, options)
+                .then(response => {
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    if (options.expectFile) {
+                        return response.text().then(data => ({
+                            type: 'file',
+                            data: data.substring(0, 500) + (data.length > 500 ? '\n...(truncated)' : ''),
+                            responseTime: responseTime,
+                            status: response.status,
+                            contentType: response.headers.get('content-type')
+                        }));
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => ({
+                            type: 'json',
+                            data: data,
+                            responseTime: responseTime,
+                            status: response.status
+                        }));
+                    } else {
+                        return response.text().then(data => ({
+                            type: 'html',
+                            data: data,
+                            responseTime: responseTime,
+                            status: response.status
+                        }));
+                    }
+                })
+                .then(result => {
+                    displayResult(result, resultElement, description);
+                })
+                .catch(error => {
+                    resultElement.innerHTML = `
+                        <div class="text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Error:</strong> ${error.message}
+                        </div>`;
+                });
+        }
+        
+        function displayResult(result, element, description) {
+            let html = '';
+            
+            if (result.type === 'json') {
+                const success = result.data.success ? '✅' : '❌';
+                html = `
+                    <div class="api-response">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><strong>${success} ${description}</strong></span>
+                            <span class="badge bg-info">${result.responseTime}ms</span>
+                        </div>
+                `;
+                
+                if (result.data.success) {
+                    const resultCount = result.data.data?.result?.length || 0;
+                    const totalCount = result.data.data?.result_info?.total_count || 0;
+                    const cacheHit = result.data.search?.cache_hit ? '🎯 Cache HIT' : '🔄 Fresh API';
+                    
+                    html += `
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <small><strong>Results:</strong> ${resultCount}/${totalCount}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <small><strong>Cache:</strong> ${cacheHit}</small>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Show statistics if available
+                    if (result.data.search?.domain_statistics) {
+                        const stats = result.data.search.domain_statistics;
+                        html += `
+                            <div class="alert alert-success alert-sm mb-2">
+                                <strong>📊 Statistics:</strong>
+                                ${stats.total_domains} domains, 
+                                ${Object.keys(stats.status_breakdown).length} statuses, 
+                                ${Object.keys(stats.plan_breakdown).length} plans,
+                                ${Object.keys(stats.tld_breakdown).length} TLDs
+                            </div>
+                        `;
+                    }
+                    
+                    // Show filtering info if available
+                    if (result.data.data?.result_info?.filtered_by_advanced) {
+                        html += `
+                            <div class="alert alert-warning alert-sm mb-2">
+                                <strong>🔍 Advanced Filtering:</strong> 
+                                ${result.data.data.result_info.filtered_count} items filtered out
+                            </div>
+                        `;
+                    }
+                }
+                
+                html += `<details><summary>View Full Response</summary><pre>${JSON.stringify(result.data, null, 2)}</pre></details>`;
+                
+            } else if (result.type === 'file') {
+                html = `
+                    <div class="api-response">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><strong>📁 ${description}</strong></span>
+                            <span class="badge bg-success">${result.responseTime}ms</span>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <strong>Content-Type:</strong> ${result.contentType}
+                        </div>
+                        <pre class="bg-light p-2 border rounded" style="max-height: 200px;">${result.data}</pre>
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="text-muted">
+                        <strong>${description}</strong> (${result.responseTime}ms)<br>
+                        <small>HTML Response - Length: ${result.data.length} chars</small>
+                    </div>
+                `;
+            }
+            
+            element.innerHTML = html;
+        }
+        
+        // Basic Search Tests
+        function testBasicSearch() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=5', 'basic-result', 'Basic Search - All Domains');
+        }
+        
+        function testSearchQuery() {
+            makeAPICall('index.php?action=search&api=1&q=example&page=1&per_page=5', 'basic-result', 'Search with Query');
+        }
+        
+        function testPagination() {
+            makeAPICall('index.php?action=search&api=1&q=&page=2&per_page=3', 'basic-result', 'Pagination Test');
+        }
+        
+        // Advanced Features
+        function testAdvancedFiltering() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=10&advanced=true&name_filter=*.com', 'advanced-result', 'Advanced Name Pattern Filtering');
+        }
+        
+        function testDomainTypes() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=10&advanced=true&domain_type=tld', 'advanced-result', 'Domain Type Filtering');
+        }
+        
+        function testSorting() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=5&sort_by=created_on&sort_order=DESC', 'advanced-result', 'Sort by Creation Date');
+        }
+        
+        // Statistics
+        function testStatistics() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=10&include_stats=true', 'stats-result', 'Domain Statistics');
+        }
+        
+        function testBreakdown() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=20&include_stats=true&sort_by=status', 'stats-result', 'Detailed Statistics Breakdown');
+        }
+        
+        // Export Functions
+        function testCSVExport() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=5&export=csv', 'export-result', 'CSV Export', {expectFile: true});
+        }
+        
+        function testJSONExport() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=3&export=json', 'export-result', 'JSON Export', {expectFile: true});
+        }
+        
+        function testXMLExport() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=3&export=xml', 'export-result', 'XML Export', {expectFile: true});
+        }
+        
+        // Performance Tests
+        function testCachePerformance() {
+            // First call (should be API)
+            makeAPICall('index.php?action=search&api=1&q=test&page=1&per_page=5&no_cache=1', 'performance-result', 'Cache Performance - No Cache');
+            
+            // Second call after 2 seconds (should hit cache)
+            setTimeout(() => {
+                makeAPICall('index.php?action=search&api=1&q=test&page=1&per_page=5', 'performance-result', 'Cache Performance - With Cache');
+            }, 2000);
+        }
+        
+        function testBulkSearch() {
+            makeAPICall('index.php?action=search&api=1&q=example.com,test.org,demo.net&bulk=1&page=1&per_page=10', 'performance-result', 'Bulk Search Test');
+        }
+        
+        function testAPIStats() {
+            makeAPICall('index.php?action=search&api=1&q=&page=1&per_page=5&include_stats=true', 'performance-result', 'API Performance Statistics');
+        }
+        
+        // Auto-run basic test on load
+        window.onload = function() {
+            testBasicSearch();
+        };
+    </script>
+</body>
+</html>

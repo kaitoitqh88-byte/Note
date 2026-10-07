@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Security Rules Manager - Expression Builder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        
+        select.form-control {
+            cursor: pointer;
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102,126,234,0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .template-card {
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .template-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102,126,234,0.15);
+        }
+        
+        .template-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+        }
+        
+        .template-card h4 {
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .template-card .category {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .template-card .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .template-card .expression {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: #333;
+            border-left: 4px solid #667eea;
+        }
+        
+        .template-card .action-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #dc2626;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .template-card .action-badge.allow { background: #22c55e; }
+        .template-card .action-badge.challenge { background: #f59e0b; }
+        .template-card .action-badge.managed_challenge { background: #8b5cf6; }
+        .template-card .action-badge.js_challenge { background: #06b6d4; }
+        .template-card .action-badge.bypass { background: #6b7280; }
+        .template-card .action-badge.log { background: #84cc16; }
+        
+        .validation-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        
+        .validation-result.valid {
+            background: #d1fae5;
+            border-color: #22c55e;
+            color: #065f46;
+        }
+        
+        .validation-result.invalid {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        
+        .test-request {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .test-request .match-yes {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .test-request .match-no {
+            background: #e5e7eb;
+            color: #374151;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .expression-builder {
+            background: #f8f9fa;
+            border: 2px dashed #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .builder-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .builder-row select, .builder-row input {
+            padding: 8px 12px;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            border-color: #22c55e;
+            color: #065f46;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2));
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-card .number {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .builder-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Cloudflare Security Rules Manager</h1>
+            <p>Create and manage custom security rules with powerful Expression language</p>
+        </div>
+
+        <div id="statsSection" class="card full-width" style="margin-bottom: 30px;">
+            <h2>📊 Security Rules Statistics</h2>
+            <div class="loading active" id="statsLoading">
+                <div class="spinner"></div>
+                <div>Loading statistics...</div>
+            </div>
+            <div id="statsContent" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="number" id="totalRules">0</div>
+                        <div class="label">Total Rules</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="enabledRules">0</div>
+                        <div class="label">Enabled</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="blockActions">0</div>
+                        <div class="label">Block Actions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="challengeActions">0</div>
+                        <div class="label">Challenges</div>
+                    </div>
+                </div>
+                <div id="recentRules" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Expression Builder -->
+            <div class="card">
+                <h2>⚡ Expression Builder</h2>
+                
+                <div class="expression-builder">
+                    <h4>Quick Builder</h4>
+                    <div class="builder-row">
+                        <select id="fieldType" class="form-control" style="flex: 1;">
+                            <option value="">Select Field</option>
+                            <option value="ip.src">IP Source</option>
+                            <option value="ip.geoip.country">Country</option>
+                            <option value="http.user_agent">User Agent</option>
+                            <option value="http.request.uri.path">URL Path</option>
+                            <option value="http.host">Host</option>
+                            <option value="http.request.method">HTTP Method</option>
+                            <option value="ip.geoip.asnum">ASN</option>
+                        </select>
+                        
+                        <select id="operator" class="form-control" style="flex: 1;">
+                            <option value="">Operator</option>
+                            <option value="eq">equals (eq)</option>
+                            <option value="ne">not equals (ne)</option>
+                            <option value="contains">contains</option>
+                            <option value="matches">matches regex</option>
+                            <option value="in">in list</option>
+                            <option value="gt">greater than</option>
+                            <option value="lt">less than</option>
+                        </select>
+                        
+                        <input type="text" id="value" placeholder="Value" class="form-control" style="flex: 2;">
+                        
+                        <button type="button" class="btn btn-primary btn-sm" onclick="buildExpression()">
+                            Add
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customExpression">Custom Expression:</label>
+                    <textarea id="customExpression" class="form-control" rows="4" 
+                              placeholder="Enter your Cloudflare Expression here...
+Examples:
+- ip.src eq 192.168.1.1
+- ip.geoip.country in {&quot;CN&quot; &quot;RU&quot;}
+- http.user_agent contains &quot;bot&quot;
+- rate(ip.src, 1m) gt 50"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ruleAction">Action:</label>
+                    <select id="ruleAction" class="form-control">
+                        <option value="block">Block</option>
+                        <option value="allow">Allow</option>
+                        <option value="challenge">Legacy Challenge</option>
+                        <option value="managed_challenge">Managed Challenge</option>
+                        <option value="js_challenge">JS Challenge</option>
+                        <option value="log">Log Only</option>
+                        <option value="bypass">Bypass</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ruleDescription">Description:</label>
+                    <input type="text" id="ruleDescription" class="form-control" 
+                           placeholder="Describe what this rule does...">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="ruleEnabled" checked> 
+                        Enable rule immediately
+                    </label>
+                </div>
+                
+                <button type="button" class="btn btn-primary" onclick="validateExpression()">
+                    🔍 Validate Expression
+                </button>
+                
+                <button type="button" class="btn btn-warning" onclick="testExpression()">
+                    🧪 Test Expression
+                </button>
+                
+                <button type="button" class="btn btn-success" onclick="createRule()" id="createRuleBtn">
+                    ✅ Create Security Rule
+                </button>
+                
+                <div id="validationResult"></div>
+                <div id="testResults"></div>
+                <div id="createResult"></div>
+            </div>
+            
+            <!-- Rule Templates -->
+            <div class="card">
+                <h2>📋 Rule Templates</h2>
+                <p>Click a template to load it into the expression builder:</p>
+                
+                <div class="templates-grid" id="templatesContainer">
+                    <!-- Templates will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Rules -->
+        <div class="card full-width">
+            <h2>📜 Current Security Rules</h2>
+            <div class="loading active" id="rulesLoading">
+                <div class="spinner"></div>
+                <div>Loading security rules...</div>
+            </div>
+            <div id="currentRules" style="display: none;">
+                <!-- Current rules will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedZone = null;
+        let templates = {};
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadZones();
+            loadTemplates();
+            loadStats();
+            loadCurrentRules();
+        });
+        
+        function loadZones() {
+            // For demo purposes, we'll simulate zone loading
+            // In real implementation, this would make an AJAX call
+            selectedZone = {
+                id: 'demo-zone-id',
+                name: 'example.com'
+            };
+        }
+        
+        function loadTemplates() {
+            // Load templates from the API
+            templates = {
+                'block_country': {
+                    name: 'Block Country',
+                    description: 'Block traffic from specific countries',
+                    expression: 'ip.geoip.country in {"CN" "RU"}',
+                    action: 'block',
+                    category: 'Geographic'
+                },
+                'block_ip_range': {
+                    name: 'Block IP Range',
+                    description: 'Block specific IP address or range',
+                    expression: 'ip.src eq 192.168.1.1',
+                    action: 'block',
+                    category: 'IP Based'
+                },
+                'rate_limit': {
+                    name: 'Rate Limiting',
+                    description: 'Rate limit requests per IP',
+                    expression: 'rate(ip.src, 1m) > 100',
+                    action: 'block',
+                    category: 'Rate Limiting'
+                },
+                'challenge_suspicious': {
+                    name: 'Challenge Suspicious Traffic',
+                    description: 'Challenge traffic with low bot score',
+                    expression: 'cf.bot_management.score < 30',
+                    action: 'managed_challenge',
+                    category: 'Bot Management'
+                },
+                'block_user_agent': {
+                    name: 'Block User Agent',
+                    description: 'Block requests with specific user agents',
+                    expression: 'http.user_agent contains "BadBot"',
+                    action: 'block',
+                    category: 'HTTP Headers'
+                },
+                'allow_whitelist': {
+                    name: 'Allow Whitelist',
+                    description: 'Allow whitelisted IP addresses',
+                    expression: 'ip.src in {1.1.1.1 8.8.8.8}',
+                    action: 'allow',
+                    category: 'IP Based'
+                },
+                'block_path': {
+                    name: 'Block Path',
+                    description: 'Block access to specific paths',
+                    expression: 'http.request.uri.path matches "^/admin/"',
+                    action: 'block',
+                    category: 'Path Based'
+                },
+                'js_challenge_crawler': {
+                    name: 'JS Challenge Crawlers',
+                    description: 'Challenge automated crawlers',
+                    expression: 'http.user_agent contains "bot" or http.user_agent contains "crawler"',
+                    action: 'js_challenge',
+                    category: 'Bot Management'
+                }
+            };
+            
+            displayTemplates();
+        }
+        
+        function displayTemplates() {
+            const container = document.getElementById('templatesContainer');
+            container.innerHTML = '';
+            
+            Object.entries(templates).forEach(([key, template]) => {
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                card.onclick = () => selectTemplate(key, template);
+                
+                card.innerHTML = `
+                    <div class="action-badge ${template.action}">${template.action}</div>
+                    <div class="category">${template.category}</div>
+                    <h4>${template.name}</h4>
+                    <div class="description">${template.description}</div>
+                    <div class="expression">${template.expression}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function selectTemplate(key, template) {
+            // Remove previous selection
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select current template
+            event.target.closest('.template-card').classList.add('selected');
+            
+            // Load template into form
+            document.getElementById('customExpression').value = template.expression;
+            document.getElementById('ruleAction').value = template.action;
+            document.getElementById('ruleDescription').value = template.description;
+            
+            // Clear previous results
+            document.getElementById('validationResult').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '';
+        }
+        
+        function buildExpression() {
+            const field = document.getElementById('fieldType').value;
+            const operator = document.getElementById('operator').value;
+            const value = document.getElementById('value').value;
+            
+            if (!field || !operator || !value) {
+                alert('Please select field, operator and enter a value');
+                return;
+            }
+            
+            let expression = '';
+            
+            if (operator === 'in') {
+                // Handle list values
+                const values = value.split(',').map(v => `"${v.trim()}"`).join(' ');
+                expression = `${field} ${operator} {${values}}`;
+            } else if (operator === 'contains' || operator === 'matches') {
+                expression = `${field} ${operator} "${value}"`;
+            } else {
+                expression = `${field} ${operator} ${value}`;
+            }
+            
+            const currentExpression = document.getElementById('customExpression').value;
+            if (currentExpression) {
+                expression = currentExpression + ' and ' + expression;
+            }
+            
+            document.getElementById('customExpression').value = expression;
+            
+            // Clear builder inputs
+            document.getElementById('fieldType').value = '';
+            document.getElementById('operator').value = '';
+            document.getElementById('value').value = '';
+        }
+        
+        function validateExpression() {
+            const expression = document.getElementById('customExpression').value.trim();
+            if (!expression) {
+                alert('Please enter an expression to validate');
+                return;
+            }
+            
+            // Simulate validation (in real app, this would be an AJAX call)
+            const result = simulateValidation(expression);
+            
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.innerHTML = `
+                <div class="validation-result ${result.valid ? 'valid' : 'invalid'}">
+                    <strong>${result.valid ? '✅ Valid' : '❌ Invalid'} Expression</strong><br>
+                    ${result.message}
+                    ${result.error ? `<br><strong>Error:</strong> ${result.error}` : ''}
+                </div>
+            `;
+        }
+        
+        function testExpression() {
+            const expression = document.getElementById('customExpression').value.trim();
+            if (!expression) {
+                alert('Please enter an expression to test');
+                return;
+            }
+            
+            // Simulate testing with sample requests
+            const testRequests = [
+                {ip: '192.168.1.1', country: 'US', user_agent: 'Chrome/91.0', path: '/', method: 'GET'},
+                {ip: '10.0.0.1', country: 'CN', user_agent: 'BadBot/1.0', path: '/admin', method: 'POST'},
+                {ip: '172.16.0.1', country: 'RU', user_agent: 'Firefox/89.0', path: '/api/data', method: 'GET'}
+            ];
+            
+            const results = testRequests.map((req, index) => {
+                const matches = simulateExpressionTest(expression, req);
+                return {
+                    index: index + 1,
+                    request: req,
+                    matches: matches
+                };
+            });
+            
+            const resultDiv = document.getElementById('testResults');
+            resultDiv.innerHTML = `
+                <div class="test-results">
+                    <h4>🧪 Test Results</h4>
+                    ${results.map(r => `
+                        <div class="test-request">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>Request ${r.index}</strong>
+                                <span class="${r.matches ? 'match-yes' : 'match-no'}">
+                                    ${r.matches ? 'WOULD MATCH ✅' : 'WOULD NOT MATCH ❌'}
+                                </span>
+                            </div>
+                            <div style="margin-top: 8px; font-size: 14px; color: #666;">
+                                IP: ${r.request.ip} | Country: ${r.request.country} | 
+                                User Agent: ${r.request.user_agent} | Path: ${r.request.path}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function createRule() {
+            const expression = document.getElementById('customExpression').value.trim();
+            const action = document.getElementById('ruleAction').value;
+            const description = document.getElementById('ruleDescription').value.trim();
+            const enabled = document.getElementById('ruleEnabled').checked;
+            
+            if (!expression) {
+                alert('Please enter an expression');
+                return;
+            }
+            
+            if (!description) {
+                alert('Please enter a description');
+                return;
+            }
+            
+            // Validate first
+            const validation = simulateValidation(expression);
+            if (!validation.valid) {
+                alert('Expression is invalid: ' + validation.error);
+                return;
+            }
+            
+            // Simulate rule creation
+            const btn = document.getElementById('createRuleBtn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Creating Rule...';
+            
+            setTimeout(() => {
+                const success = Math.random() > 0.2; // 80% success rate for demo
+                
+                const resultDiv = document.getElementById('createResult');
+                if (success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success" style="margin-top: 15px;">
+                            <strong>✅ Security Rule Created Successfully!</strong><br>
+                            Rule ID: rule-${Date.now()}<br>
+                            Expression: ${expression}<br>
+                            Action: ${action}<br>
+                            Status: ${enabled ? 'Enabled' : 'Disabled'}
+                        </div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('customExpression').value = '';
+                    document.getElementById('ruleDescription').value = '';
+                    
+                    // Refresh rules list
+                    loadCurrentRules();
+                    loadStats();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-error" style="margin-top: 15px;">
+                            <strong>❌ Failed to Create Rule</strong><br>
+                            Error: API returned an error (simulated for demo)
+                        </div>
+                    `;
+                }
+                
+                btn.disabled = false;
+                btn.innerHTML = '✅ Create Security Rule';
+            }, 2000);
+        }
+        
+        function loadStats() {
+            // Simulate loading stats
+            setTimeout(() => {
+                document.getElementById('statsLoading').classList.remove('active');
+                document.getElementById('statsContent').style.display = 'block';
+                
+                // Populate stats
+                document.getElementById('totalRules').textContent = Math.floor(Math.random() * 50) + 10;
+                document.getElementById('enabledRules').textContent = Math.floor(Math.random() * 40) + 5;
+                document.getElementById('blockActions').textContent = Math.floor(Math.random() * 20) + 2;
+                document.getElementById('challengeActions').textContent = Math.floor(Math.random() * 15) + 1;
+                
+                // Recent rules
+                const recentRulesDiv = document.getElementById('recentRules');
+                recentRulesDiv.innerHTML = `
+                    <h4>Recent Rules</h4>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                            <strong>Block suspicious countries</strong> (block, enabled)
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                            <strong>Rate limit per IP</strong> (block, enabled)
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                            <strong>Challenge bots</strong> (managed_challenge, enabled)
+                        </div>
+                    </div>
+                `;
+            }, 1500);
+        }
+        
+        function loadCurrentRules() {
+            // Simulate loading current rules
+            setTimeout(() => {
+                document.getElementById('rulesLoading').classList.remove('active');
+                
+                const rulesDiv = document.getElementById('currentRules');
+                rulesDiv.style.display = 'block';
+                rulesDiv.innerHTML = `
+                    <div style="display: grid; gap: 15px;">
+                        <div style="border: 1px solid #e1e5e9; border-radius: 10px; padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <h4>Block malicious countries</h4>
+                                    <p style="color: #666; margin: 5px 0;">ip.geoip.country in {"CN" "RU" "KP"}</p>
+                                    <span style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px;">block</span>
+                                    <span style="background: #22c55e; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-left: 5px;">enabled</span>
+                                </div>
+                                <button class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        </div>
+                        
+                        <div style="border: 1px solid #e1e5e9; border-radius: 10px; padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <h4>Rate limiting protection</h4>
+                                    <p style="color: #666; margin: 5px 0;">rate(ip.src, 1m) gt 50</p>
+                                    <span style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px;">block</span>
+                                    <span style="background: #22c55e; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-left: 5px;">enabled</span>
+                                </div>
+                                <button class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        </div>
+                        
+                        <div style="border: 1px solid #e1e5e9; border-radius: 10px; padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <h4>Challenge suspicious requests</h4>
+                                    <p style="color: #666; margin: 5px 0;">cf.bot_management.score lt 30</p>
+                                    <span style="background: #8b5cf6; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px;">managed_challenge</span>
+                                    <span style="background: #6b7280; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-left: 5px;">disabled</span>
+                                </div>
+                                <button class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        // Simulation functions
+        function simulateValidation(expression) {
+            // Basic validation simulation
+            if (expression.includes('==') || expression.includes('!=')) {
+                return {
+                    valid: false,
+                    error: "Use 'eq' instead of '==', 'ne' instead of '!='"
+                };
+            }
+            
+            if (!expression.match(/\w+\.\w+/)) {
+                return {
+                    valid: false,
+                    error: "Expression doesn't match expected patterns"
+                };
+            }
+            
+            const openParens = (expression.match(/\(/g) || []).length;
+            const closeParens = (expression.match(/\)/g) || []).length;
+            
+            if (openParens !== closeParens) {
+                return {
+                    valid: false,
+                    error: "Unmatched parentheses"
+                };
+            }
+            
+            return {
+                valid: true,
+                message: "Expression syntax appears valid"
+            };
+        }
+        
+        function simulateExpressionTest(expression, request) {
+            // Simple simulation for demo
+            if (expression.includes('ip.geoip.country') && (request.country === 'CN' || request.country === 'RU')) {
+                return true;
+            }
+            
+            if (expression.includes('user_agent') && expression.includes('bot') && request.user_agent.includes('Bot')) {
+                return true;
+            }
+            
+            if (expression.includes('/admin') && request.path.includes('/admin')) {
+                return true;
+            }
+            
+            if (expression.includes('rate(') && request.ip.startsWith('10.')) {
+                return true; // Simulate rate limit hit
+            }
+            
+            return false;
+        }
+    </script>
+</body>
+</html>

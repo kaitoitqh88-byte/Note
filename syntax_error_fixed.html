@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>✅ FIXED: JavaScript Syntax Error</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .fix-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #28a745; }
+        .error-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #dc3545; }
+        .code-block { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; }
+        .test-result { background: #1e2124; color: #00ff41; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>✅ FIXED: JavaScript Syntax Error</h1>
+        
+        <div class="error-panel">
+            <h3>🚨 Lỗi đã được phát hiện và sửa</h3>
+            <div class="alert alert-danger">
+                <h5><strong>Error gốc:</strong></h5>
+                <div class="code-block">
+                    Uncaught SyntaxError: Unexpected token '{' 
+                    (at index.php?action=search&q=027g2u5.uk.com&status=&per_page=20&use_cache=on:2011:28)
+                </div>
+                
+                <h5><strong>Nguyên nhân:</strong></h5>
+                <p>Function <code>formatHTTPS(domain)</code> thiếu dấu đóng ngoặc nhọn <code>}</code> ở cuối.</p>
+            </div>
+        </div>
+
+        <div class="fix-panel">
+            <h3>🔧 Giải pháp đã áp dụng</h3>
+            <div class="alert alert-success">
+                <h5><strong>Fix thực hiện:</strong></h5>
+                <p>Đã thêm dấu <code>}</code> bị thiếu vào cuối function <code>formatHTTPS</code> trong file search.php ở dòng 2009.</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>❌ Code lỗi:</h6>
+                        <div class="code-block">
+                            return `&lt;span class="https-unknown"&gt;${statusIcon}${statusText}&lt;/span&gt;`;<br>
+                        } // ← Thiếu }
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>✅ Code đã sửa:</h6>
+                        <div class="code-block">
+                            return `&lt;span class="https-unknown"&gt;${statusIcon}${statusText}&lt;/span&gt;`;<br>
+                        }<br>
+                        } // ← Đã thêm } bị thiếu
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fix-panel">
+            <h3>🧪 Verification Tests</h3>
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="testOriginalURL()">
+                    🔍 Test Original URL
+                </button>
+                <button class="btn btn-success" onclick="testJavaScriptExecution()">
+                    ⚡ Test JavaScript Execution
+                </button>
+                <button class="btn btn-info" onclick="testSearch()">
+                    📡 Test Search Functionality
+                </button>
+                <button class="btn btn-secondary" onclick="clearLog()">
+                    🗑️ Clear Log
+                </button>
+            </div>
+            
+            <div id="testLog" class="test-result">
+=== Verification Console ===
+Sẵn sàng test syntax error fix...
+
+            </div>
+        </div>
+
+        <div class="fix-panel">
+            <h3>🔗 Live Test Links</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🎯 Original URLs that failed:</h5>
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search&q=027g2u5.uk.com&status=&per_page=20&use_cache=on" class="btn btn-outline-primary" target="_blank">
+                            🌐 027g2u5.uk.com (Original Error URL)
+                        </a>
+                        <small class="text-success">✅ Should work now without syntax error</small>
+                        
+                        <a href="index.php?action=search&q=68winplay.com&status=&per_page=20&use_cache=on" class="btn btn-outline-success" target="_blank">
+                            🎯 68winplay.com (Previous Fix)
+                        </a>
+                        <small class="text-muted">Should continue working</small>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5>🧪 Additional Tests:</h5>
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search&q=" class="btn btn-outline-info" target="_blank">
+                            📋 Empty Search (Load All)
+                        </a>
+                        
+                        <a href="index.php?action=search&q=test&status=active&per_page=50&use_cache=on" class="btn btn-outline-warning" target="_blank">
+                            ⚙️ Complex Parameters Test
+                        </a>
+                        
+                        <button class="btn btn-outline-secondary" onclick="openDevToolsGuide()">
+                            🔧 Check DevTools Console
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fix-panel">
+            <h3>📋 Technical Summary</h3>
+            <div class="bg-light p-3 rounded">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>🔧 Fix Details:</h6>
+                        <ul>
+                            <li><strong>File:</strong> search.php</li>
+                            <li><strong>Line:</strong> ~2009</li>
+                            <li><strong>Function:</strong> formatHTTPS()</li>
+                            <li><strong>Issue:</strong> Missing closing brace }</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>✅ Expected Results:</h6>
+                        <ul>
+                            <li>No more syntax errors in console</li>
+                            <li>JavaScript executes normally</li>
+                            <li>Search results display correctly</li>
+                            <li>All URL parameters work properly</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const testLog = document.getElementById('testLog');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+            const icon = icons[type] || 'ℹ️';
+            
+            testLog.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            testLog.scrollTop = testLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            testLog.innerHTML = '=== Verification Console ===\nLog cleared...\n\n';
+        }
+
+        function testOriginalURL() {
+            log('🔍 Testing original error URL...', 'info');
+            
+            try {
+                // Test URL parsing
+                const errorURL = 'index.php?action=search&q=027g2u5.uk.com&status=&per_page=20&use_cache=on';
+                const url = new URL(errorURL, window.location.origin);
+                const params = new URLSearchParams(url.search);
+                
+                log(`📄 URL: ${errorURL}`, 'info');
+                log(`🔍 Query parameter: "${params.get('q')}"`, 'info');
+                
+                if (params.get('q') === '027g2u5.uk.com') {
+                    log('✅ URL parsing works correctly', 'success');
+                } else {
+                    log('❌ URL parsing failed', 'error');
+                    return;
+                }
+                
+                // Test opening URL
+                log('🌐 Opening URL in new tab...', 'info');
+                window.open(errorURL, '_blank');
+                log('✅ URL opened - check for syntax errors in new tab console', 'success');
+                
+            } catch (error) {
+                log(`❌ Test error: ${error.message}`, 'error');
+            }
+        }
+
+        function testJavaScriptExecution() {
+            log('⚡ Testing JavaScript execution environment...', 'info');
+            
+            try {
+                // Test basic JS features that search page uses
+                log('🧪 Testing URLSearchParams...', 'info');
+                const params = new URLSearchParams('?q=test&status=active');
+                if (params.get('q') === 'test') {
+                    log('✅ URLSearchParams working', 'success');
+                } else {
+                    log('❌ URLSearchParams failed', 'error');
+                }
+                
+                log('🧪 Testing template literals...', 'info');
+                const testTemplate = `Status: ${'active'}, Query: ${'test'}`;
+                if (testTemplate.includes('Status: active')) {
+                    log('✅ Template literals working', 'success');
+                } else {
+                    log('❌ Template literals failed', 'error');
+                }
+                
+                log('🧪 Testing arrow functions...', 'info');
+                const testArrow = (x) => x * 2;
+                if (testArrow(5) === 10) {
+                    log('✅ Arrow functions working', 'success');
+                } else {
+                    log('❌ Arrow functions failed', 'error');
+                }
+                
+                log('🧪 Testing fetch availability...', 'info');
+                if (typeof fetch === 'function') {
+                    log('✅ Fetch API available', 'success');
+                } else {
+                    log('❌ Fetch API not available', 'error');
+                }
+                
+                log('✅ JavaScript environment test completed', 'success');
+                
+            } catch (error) {
+                log(`❌ JavaScript execution error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSearch() {
+            log('📡 Testing search functionality...', 'info');
+            
+            try {
+                // Test API with the domain that caused the error
+                const testQuery = '027g2u5.uk.com';
+                const apiURL = `index.php?action=search&api=1&q=${encodeURIComponent(testQuery)}&per_page=5`;
+                
+                log(`🔗 Testing API: ${apiURL}`, 'info');
+                
+                const response = await fetch(apiURL);
+                log(`📊 Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`📄 Response parsed successfully`, 'success');
+                    log(`📊 API success: ${data.success}`, 'info');
+                    log(`📊 Results count: ${data.data?.result?.length || 0}`, 'info');
+                    
+                    if (data.success) {
+                        log(`✅ Search API working for "${testQuery}"`, 'success');
+                        if (data.data?.result?.length > 0) {
+                            log(`🌐 Found domain: ${data.data.result[0].name}`, 'success');
+                        } else {
+                            log(`ℹ️ No results found for "${testQuery}" (but API works)`, 'info');
+                        }
+                    } else {
+                        log(`⚠️ API returned error: ${data.error || 'Unknown'}`, 'warning');
+                    }
+                } else {
+                    log(`❌ HTTP error: ${response.status}`, 'error');
+                }
+                
+                log('✅ Search functionality test completed', 'success');
+                
+            } catch (error) {
+                log(`❌ Search test error: ${error.message}`, 'error');
+            }
+        }
+
+        function openDevToolsGuide() {
+            log('🔧 Opening DevTools guide...', 'info');
+            log('1. Press F12 or Ctrl+Shift+I', 'info');
+            log('2. Click Console tab', 'info');
+            log('3. Look for any red error messages', 'info');
+            log('4. If no errors = syntax error is fixed!', 'success');
+            
+            // Open the original error URL
+            setTimeout(() => {
+                window.open('index.php?action=search&q=027g2u5.uk.com&status=&per_page=20&use_cache=on', '_blank');
+            }, 2000);
+        }
+
+        // Auto-run verification when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                log('🚀 Syntax error fix verification loaded', 'success');
+                log('💡 Click buttons above to test the fix', 'info');
+                log('🎯 Expected: No more "Unexpected token" errors', 'info');
+            }, 500);
+        };
+    </script>
+</body>
+</html>

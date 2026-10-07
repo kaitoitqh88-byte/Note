@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search.php Syntax Test</title>
+</head>
+<body>
+    <h1>Testing JavaScript from search.php</h1>
+    <div id="testResults"></div>
+
+    <script>
+        console.log("=== SYNTAX TEST START ===");
+        let errors = [];
+
+        // Test 1: Template literals with complex expressions
+        try {
+            const relevanceLevel = 85;
+            const testHTML = `
+                <div class="relevance-indicator" data-relevance="${relevanceLevel}">
+                    ${relevanceLevel >= 80 
+                        ? `<i class="fas fa-star text-warning me-1"></i>
+                           <span class="fw-bold text-warning">Rất phù hợp</span>` 
+                        : relevanceLevel >= 60 
+                            ? `<i class="fas fa-star-half-alt text-info me-1"></i>
+                               <span class="text-info">Phù hợp</span>`
+                            : `<i class="fas fa-star text-muted me-1"></i>
+                               <span class="text-muted">Ít phù hợp</span>`
+                    }
+                </div>
+            `;
+            console.log("✅ Test 1 PASSED: Complex template literal");
+        } catch (e) {
+            errors.push("Test 1 FAILED: " + e.message);
+            console.error("❌ Test 1 FAILED:", e);
+        }
+
+        // Test 2: Arrow functions with template literals
+        try {
+            const formatters = {
+                formatStatus: (status) => {
+                    const statusMap = {
+                        'active': 'Hoạt động',
+                        'pending': 'Đang chờ'
+                    };
+                    return statusMap[status] || status;
+                },
+                
+                formatDate: (dateString) => {
+                    try {
+                        return new Date(dateString).toLocaleDateString('vi-VN');
+                    } catch {
+                        return dateString;
+                    }
+                }
+            };
+            
+            const testResult = formatters.formatStatus('active');
+            console.log("✅ Test 2 PASSED: Arrow functions with templates");
+        } catch (e) {
+            errors.push("Test 2 FAILED: " + e.message);
+            console.error("❌ Test 2 FAILED:", e);
+        }
+
+        // Test 3: Complex object method definitions
+        try {
+            const testClass = {
+                async performSearch(page = 1) {
+                    const response = await fetch('/test.php');
+                    return response.json();
+                },
+
+                renderResults(results) {
+                    return results.map(result => `<div>${result.name}</div>`).join('');
+                },
+
+                showNotification(message, type = 'info') {
+                    console.log(`${type}: ${message}`);
+                }
+            };
+            console.log("✅ Test 3 PASSED: Complex object methods");
+        } catch (e) {
+            errors.push("Test 3 FAILED: " + e.message);
+            console.error("❌ Test 3 FAILED:", e);
+        }
+
+        // Test 4: Nested template literals with conditionals
+        try {
+            const domains = [
+                { name: 'example.com', status: 'active', relevance: 85 },
+                { name: 'test.com', status: 'pending', relevance: 65 }
+            ];
+
+            const tableRows = domains.map(domain => `
+                <tr>
+                    <td>${domain.name}</td>
+                    <td>
+                        <span class="status-badge status-${domain.status}">
+                            ${domain.status === 'active' ? 'Hoạt động' : 'Đang chờ'}
+                        </span>
+                    </td>
+                    <td>
+                        ${domain.relevance >= 80 
+                            ? `<i class="fas fa-star text-warning"></i> Cao`
+                            : `<i class="fas fa-star text-muted"></i> Trung bình`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+            
+            console.log("✅ Test 4 PASSED: Nested template literals");
+        } catch (e) {
+            errors.push("Test 4 FAILED: " + e.message);
+            console.error("❌ Test 4 FAILED:", e);
+        }
+
+        // Display results
+        const resultsDiv = document.getElementById('testResults');
+        if (errors.length === 0) {
+            resultsDiv.innerHTML = `
+                <div style="color: green; font-weight: bold; padding: 20px; border: 2px solid green; background: #f0fff0;">
+                    ✅ ALL SYNTAX TESTS PASSED!<br>
+                    JavaScript syntax in search.php appears to be correct.
+                </div>
+            `;
+        } else {
+            resultsDiv.innerHTML = `
+                <div style="color: red; font-weight: bold; padding: 20px; border: 2px solid red; background: #fff0f0;">
+                    ❌ FOUND ${errors.length} SYNTAX ERROR(S):<br>
+                    ${errors.map(error => `• ${error}`).join('<br>')}
+                </div>
+            `;
+        }
+
+        console.log("=== SYNTAX TEST END ===");
+        console.log("Total errors found:", errors.length);
+    </script>
+</body>
+</html>

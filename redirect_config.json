@@ -1,0 +1,8 @@
+{
+    "redirects": [],
+    "settings": {
+        "redirect_type": "301",
+        "enable_wildcard": true,
+        "enable_https_redirect": true
+    }
+}

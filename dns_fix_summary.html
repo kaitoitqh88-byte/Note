@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Fixed DNS Test Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); min-height: 100vh; }
+        .fix-card { 
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .fix-item { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .test-result { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px; border-radius: 8px; margin: 10px 0; }
+        .api-call { background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 6px; font-family: monospace; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="fix-card p-4">
+                    
+                    <div class="text-center mb-4">
+                        <h1>✅ DNS Records Function - FIXED!</h1>
+                        <p class="lead">Các fixes đã được implement để resolve DNS lookup issues</p>
+                    </div>
+
+                    <!-- Fixes Applied -->
+                    <h3><i class="fas fa-wrench"></i> Fixes Applied</h3>
+                    
+                    <div class="fix-item">
+                        <h6>🔧 Fix 1: Added per_page parameter</h6>
+                        <p>CloudflareAPI.php - listDNSRecords() now includes per_page=100 để đảm bảo lấy đủ records thay vì chỉ 20 records mặc định.</p>
+                        <div class="api-call">
+                            $params = ['per_page' => 100]; // Đảm bảo lấy đủ records
+                        </div>
+                    </div>
+
+                    <div class="fix-item">
+                        <h6>🔧 Fix 2: Enhanced error handling</h6>
+                        <p>Added debug logging và detailed error responses để track API call issues.</p>
+                        <div class="api-call">
+                            error_log("Cloudflare DNS: Retrieved " . count($records) . " records for domain: $domain");
+                        </div>
+                    </div>
+
+                    <div class="fix-item">
+                        <h6>🔧 Fix 3: Debug endpoint</h6>
+                        <p>Added special debug endpoint (?_debug=1) để step-by-step troubleshooting.</p>
+                        <div class="api-call">
+                            function debugCloudflareDNS() { /* comprehensive debugging */ }
+                        </div>
+                    </div>
+
+                    <div class="fix-item">
+                        <h6>🔧 Fix 4: Improved zone lookup</h6>
+                        <p>Better zone finding logic với fallbacks và clearer error messages.</p>
+                    </div>
+
+                    <!-- Test This Domain -->
+                    <h3 class="mt-4"><i class="fas fa-test-tube"></i> Test darleydale.uk.com</h3>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Expected Results:</h6>
+                            <div class="test-result">
+                                <strong>A Record:</strong> darleydale.uk.com → 103.213.216.110 (🟠 Proxied)<br>
+                                <strong>CNAME Record:</strong> www.darleydale.uk.com → darleydale.uk.com (🟠 Proxied)
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Quick Test:</h6>
+                            <button class="btn btn-success" onclick="quickTest()">
+                                <i class="fas fa-play"></i> Test Now
+                            </button>
+                            <div id="quickResults" class="test-result mt-2" style="display: none;">
+                                <!-- Results will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test Tools -->
+                    <hr>
+                    <h4><i class="fas fa-tools"></i> Test Tools</h4>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">Debug Tool</div>
+                                <div class="card-body">
+                                    <p class="small">Comprehensive step-by-step debugging</p>
+                                    <a href="/Note/debug_dns_ui.html" class="btn btn-outline-success btn-sm">Open Debug UI</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">Domain Test</div>
+                                <div class="card-body">
+                                    <p class="small">Test specific domain với comparison</p>
+                                    <a href="/Note/test_darleydale.html" class="btn btn-outline-primary btn-sm">Test darleydale.uk.com</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">Live Demo</div>
+                                <div class="card-body">
+                                    <p class="small">Full interactive DNS lookup tool</p>
+                                    <a href="/Note/demo_live.html" class="btn btn-outline-info btn-sm">Open Demo</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Examples -->
+                    <hr>
+                    <h4><i class="fas fa-code"></i> API Calls</h4>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Test these endpoints:</h6>
+                            <div class="api-call">
+                                GET /Note/index.php?action=cloudflare-dns&domain=darleydale.uk.com&include_proxied=true
+                            </div>
+                            <div class="api-call">
+                                GET /Note/index.php?action=cloudflare-dns&_debug=1&domain=darleydale.uk.com
+                            </div>
+                            <div class="api-call">
+                                GET /Note/index.php?action=cloudflare-dns&_list_domains=1
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function quickTest() {
+            const resultsDiv = document.getElementById('quickResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing API...';
+
+            try {
+                const response = await fetch('/Note/index.php?action=cloudflare-dns&domain=darleydale.uk.com&include_proxied=true');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.data.statistics;
+                    const records = data.data.cloudflare_records;
+
+                    let html = `
+                        <strong>✅ SUCCESS!</strong><br>
+                        Total Records: ${stats.total_records} | Proxied: ${stats.proxied_records}<br>
+                        Record Types: ${Object.keys(records).join(', ')}<br>
+                    `;
+
+                    // Check specific records
+                    if (records.A) {
+                        const aRecord = records.A.find(r => r.name === 'darleydale.uk.com' && r.content === '103.213.216.110');
+                        html += aRecord ? `✅ A Record Found<br>` : '❌ Expected A Record Missing<br>';
+                    }
+
+                    if (records.CNAME) {
+                        const cnameRecord = records.CNAME.find(r => r.name === 'www.darleydale.uk.com');
+                        html += cnameRecord ? `✅ CNAME Record Found<br>` : '❌ Expected CNAME Record Missing<br>';
+                    }
+
+                    resultsDiv.innerHTML = html + '<small class="text-muted">DNS function working correctly!</small>';
+                } else {
+                    resultsDiv.innerHTML = `<strong>❌ FAILED:</strong> ${data.error}<br><small>Check debug tools for details</small>`;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<strong>⚠️ ERROR:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

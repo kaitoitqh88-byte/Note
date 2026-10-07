@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Multi-line Search Feature</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-search text-primary me-2"></i>
+                    Test Multi-line Domain Search
+                </h2>
+                
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle me-2"></i>Test Scenario</h5>
+                    <p>Testing the new multi-line domain search functionality with the following features:</p>
+                    <ul class="mb-0">
+                        <li><strong>Toggle Button:</strong> Switch between single-line and multi-line input modes</li>
+                        <li><strong>Multi-domain Input:</strong> Enter multiple domains separated by comma, semicolon, or new lines</li>
+                        <li><strong>Domain Validation:</strong> Validate domain format before searching</li>
+                        <li><strong>Bulk Search:</strong> Search up to 50 domains at once</li>
+                        <li><strong>Enhanced Results:</strong> Display search statistics and results</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            Multi-line Search Implementation Test
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-success">✅ Completed Features:</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        HTML structure with toggle button
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        CSS styling for single/multi-line containers
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        JavaScript event handlers for toggle
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Domain parsing and validation logic
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Multi-domain search method
+                                    </li>
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Enhanced result display with statistics
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-info">🔍 Test Examples:</h6>
+                                <div class="bg-light p-3 rounded">
+                                    <p><strong>Single domain:</strong></p>
+                                    <code>example.com</code>
+                                    
+                                    <p class="mt-3"><strong>Multiple domains (comma-separated):</strong></p>
+                                    <code>domain1.com, domain2.org, domain3.net</code>
+                                    
+                                    <p class="mt-3"><strong>Multiple domains (line-separated):</strong></p>
+                                    <code>
+                                        domain1.com<br>
+                                        domain2.org<br>
+                                        domain3.net
+                                    </code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="text-primary">📋 Implementation Details:</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Component</th>
+                                                <th>Status</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Toggle Button</td>
+                                                <td><span class="badge bg-success">Complete</span></td>
+                                                <td>Switch between single-line input and multi-line textarea</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CSS Styling</td>
+                                                <td><span class="badge bg-success">Complete</span></td>
+                                                <td>Responsive design with smooth transitions</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Domain Parser</td>
+                                                <td><span class="badge bg-success">Complete</span></td>
+                                                <td>Parse domains from various separators (comma, line, semicolon)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Validation</td>
+                                                <td><span class="badge bg-success">Complete</span></td>
+                                                <td>Basic domain format validation and 50-domain limit</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Search Logic</td>
+                                                <td><span class="badge bg-success">Complete</span></td>
+                                                <td>Handles bulk domain search with API integration</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Result Display</td>
+                                                <td><span class="badge bg-success">Complete</span></td>
+                                                <td>Enhanced results with search statistics</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-play me-2"></i>
+                            Test Instructions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>Open <code>search.php</code> in your browser</li>
+                            <li>Look for the new toggle button labeled "Nhiều Domain" in the top-right of the search box</li>
+                            <li>Click the toggle button to switch to multi-line mode</li>
+                            <li>Enter multiple domains in the textarea using different formats:
+                                <ul>
+                                    <li>Comma-separated: <code>domain1.com, domain2.org</code></li>
+                                    <li>Line-separated: Each domain on a new line</li>
+                                    <li>Mixed separators: <code>domain1.com; domain2.org\ndomain3.net</code></li>
+                                </ul>
+                            </li>
+                            <li>Press Ctrl+Enter or wait for auto-search to trigger the search</li>
+                            <li>Verify the enhanced results display shows search statistics</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="search.php" class="btn btn-primary btn-lg">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Go to Search Page
+                    </a>
+                    <a href="search.php?multimode=true" class="btn btn-outline-primary btn-lg ms-2">
+                        <i class="fas fa-list me-2"></i>
+                        Test Multi-line Mode
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

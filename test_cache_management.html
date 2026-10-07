@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cache Management Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+        
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            border-left: 4px solid #007bff;
+            background: white;
+            display: none;
+        }
+        
+        .test-result.success {
+            border-left-color: #28a745;
+        }
+        
+        .test-result.error {
+            border-left-color: #dc3545;
+        }
+        
+        .demo-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-database text-primary me-2"></i>
+                    Test Cache Management Dashboard
+                </h1>
+                
+                <!-- Demo Dashboard Stats -->
+                <div class="demo-stats">
+                    <h4><i class="fas fa-chart-line me-2"></i>Demo Dashboard Cache Stats</h4>
+                    <div class="row">
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-save fa-2x mb-2"></i>
+                                <h5 class="mb-1" id="demo-cache-count">15</h5>
+                                <small>Cached Domains</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-clock fa-2x mb-2"></i>
+                                <h5 class="mb-1">87%</h5>
+                                <small>Hit Rate</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-hdd fa-2x mb-2"></i>
+                                <h5 class="mb-1">2.3 MB</h5>
+                                <small>Cache Size</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-calendar fa-2x mb-2"></i>
+                                <h5 class="mb-1">14:30 Today</h5>
+                                <small>Last Updated</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Test Cache Stats API -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-chart-bar text-primary me-2"></i>
+                        Test Cache Statistics API
+                    </h5>
+                    <p class="text-muted mb-3">Test endpoint: <code>?action=get_cache_stats</code></p>
+                    
+                    <button class="btn btn-primary" onclick="testCacheStats()">
+                        <i class="fas fa-sync-alt me-2"></i>Get Cache Statistics
+                    </button>
+                    
+                    <div id="cache-stats-result" class="test-result">
+                        <pre id="cache-stats-data"></pre>
+                    </div>
+                </div>
+                
+                <!-- Test Cache Current Domains -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-save text-success me-2"></i>
+                        Test Cache Current Domains
+                    </h5>
+                    <p class="text-muted mb-3">Test endpoint: <code>?action=cache_current_domains</code></p>
+                    
+                    <button class="btn btn-success" onclick="testCacheCurrentDomains()">
+                        <i class="fas fa-database me-2"></i>Cache Current Domains
+                    </button>
+                    
+                    <div id="cache-domains-result" class="test-result">
+                        <pre id="cache-domains-data"></pre>
+                    </div>
+                </div>
+                
+                <!-- Test Clear Domain Cache -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-broom text-warning me-2"></i>
+                        Test Clear Domain Cache
+                    </h5>
+                    <p class="text-muted mb-3">Test endpoint: <code>?action=clear_domain_cache</code></p>
+                    
+                    <button class="btn btn-warning" onclick="testClearCache()">
+                        <i class="fas fa-trash-alt me-2"></i>Clear Domain Cache
+                    </button>
+                    
+                    <div id="clear-cache-result" class="test-result">
+                        <pre id="clear-cache-data"></pre>
+                    </div>
+                </div>
+                
+                <!-- Test Warm Cache -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-fire text-info me-2"></i>
+                        Test Warm Domain Cache
+                    </h5>
+                    <p class="text-muted mb-3">Test endpoint: <code>?action=warm_domain_cache</code></p>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="warm-domain" placeholder="example.com" value="example.com">
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="warm-zone-id" placeholder="zone_id" value="test123">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-info" onclick="testWarmCache()">
+                        <i class="fas fa-fire me-2"></i>Warm Domain Cache
+                    </button>
+                    
+                    <div id="warm-cache-result" class="test-result">
+                        <pre id="warm-cache-data"></pre>
+                    </div>
+                </div>
+                
+                <!-- Test View Cache Details -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-eye text-secondary me-2"></i>
+                        Test View Cache Details
+                    </h5>
+                    <p class="text-muted mb-3">Test endpoint: <code>?action=view_cache_details</code></p>
+                    
+                    <button class="btn btn-secondary" onclick="testViewCacheDetails()">
+                        <i class="fas fa-eye me-2"></i>View Cache Details (New Tab)
+                    </button>
+                </div>
+                
+                <!-- Test Export/Import -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-exchange-alt text-dark me-2"></i>
+                        Test Export/Import Cache
+                    </h5>
+                    <p class="text-muted mb-3">Test endpoints: <code>?action=export_cache_data</code> & <code>?action=import_cache_data</code></p>
+                    
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary" onclick="testExportCache()">
+                            <i class="fas fa-download me-2"></i>Export Cache Data
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="testImportCache()">
+                            <i class="fas fa-upload me-2"></i>Import Cache Data (File)
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Demo Actions -->
+                <div class="test-section">
+                    <h5>
+                        <i class="fas fa-play text-success me-2"></i>
+                        Demo Dashboard Actions
+                    </h5>
+                    <p class="text-muted mb-3">Simulate dashboard cache management actions</p>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-success btn-sm w-100" onclick="simulateWarmAll()">
+                                <i class="fas fa-fire"></i> Simulate Warm All
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="simulateClearAll()">
+                                <i class="fas fa-broom"></i> Simulate Clear All
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-info btn-sm w-100" onclick="simulateRefreshStats()">
+                                <i class="fas fa-sync"></i> Simulate Refresh Stats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Go to Dashboard -->
+                <div class="text-center mt-4 pt-4 border-top">
+                    <a href="?action=dashboard" class="btn btn-primary btn-lg">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Go to Dashboard with Cache Management
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showResult(elementId, data, isSuccess = true) {
+            const result = document.getElementById(elementId);
+            const dataElement = document.getElementById(elementId.replace('result', 'data'));
+            
+            result.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            result.style.display = 'block';
+            dataElement.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        function testCacheStats() {
+            fetch('?action=get_cache_stats')
+                .then(response => response.json())
+                .then(data => {
+                    showResult('cache-stats-result', data, data.success);
+                })
+                .catch(error => {
+                    showResult('cache-stats-result', { error: error.message }, false);
+                });
+        }
+        
+        function testCacheCurrentDomains() {
+            fetch('?action=cache_current_domains', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    showResult('cache-domains-result', data, data.success);
+                })
+                .catch(error => {
+                    showResult('cache-domains-result', { error: error.message }, false);
+                });
+        }
+        
+        function testClearCache() {
+            if (!confirm('Are you sure you want to clear all cache?')) return;
+            
+            fetch('?action=clear_domain_cache', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    showResult('clear-cache-result', data, data.success);
+                })
+                .catch(error => {
+                    showResult('clear-cache-result', { error: error.message }, false);
+                });
+        }
+        
+        function testWarmCache() {
+            const domain = document.getElementById('warm-domain').value;
+            const zoneId = document.getElementById('warm-zone-id').value;
+            
+            if (!domain || !zoneId) {
+                alert('Please enter both domain and zone_id');
+                return;
+            }
+            
+            fetch('?action=warm_domain_cache', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    domain: domain,
+                    zone_id: zoneId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showResult('warm-cache-result', data, data.success);
+            })
+            .catch(error => {
+                showResult('warm-cache-result', { error: error.message }, false);
+            });
+        }
+        
+        function testViewCacheDetails() {
+            window.open('?action=view_cache_details', '_blank');
+        }
+        
+        function testExportCache() {
+            window.location.href = '?action=export_cache_data';
+        }
+        
+        function testImportCache() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const formData = new FormData();
+                formData.append('cache_file', file);
+                
+                fetch('?action=import_cache_data', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.success ? data.message : 'Error: ' + data.message);
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            };
+            input.click();
+        }
+        
+        function simulateWarmAll() {
+            alert('🔥 Simulation: Warming cache for all domains...\n\nThis would:\n- Get all domains from API\n- Cache domain info for each\n- Show progress indicator\n- Update cache statistics');
+        }
+        
+        function simulateClearAll() {
+            if (!confirm('🧹 Simulate clearing all cache?')) return;
+            alert('✅ Simulation: All domain cache cleared!\n\nThis would:\n- Delete all cache files\n- Reset cache statistics\n- Show success notification');
+        }
+        
+        function simulateRefreshStats() {
+            // Update demo stats
+            const count = Math.floor(Math.random() * 50) + 1;
+            document.getElementById('demo-cache-count').textContent = count;
+            alert('🔄 Simulation: refreshed cache statistics!\n\n' + 
+                  'New cached domains: ' + count + '\n' +
+                  'This would:\n- Scan cache directory\n- Count cache files\n- Calculate hit rate\n- Update UI display');
+        }
+    </script>
+</body>
+</html>

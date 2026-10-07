@@ -1,0 +1,50 @@
+# Bảo mật - Không commit những file này
+token.txt
+.env
+config_local.php
+config.php
+Data_Config/
+aapanel_api_config.php
+aapanel.txt
+credentials.json
+google-drive-token.json
+vps.json
+vps.txt
+taikhoan_vps.txt
+_vps_update_input.txt
+aapanel_config.json
+IDNPunycodeConverter/domain_ip.json
+IDNPunycodeConverter/domain_ip_1.json
+IDNPunycodeConverter/vps_domains_map*.json
+IDNPunycodeConverter/vps_domains_map*.zip
+IDNPunycodeConverter/zones_cache.json
+data/my_cloudflare_zones.json
+check_301/domains.txt
+check_301/doamin_ns.txt
+*.pem
+*.key
+*.p12
+*.pfx
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_log
+
+# Cache
+cache/
+temp/
+logs/
+
+# Composer
+vendor/
+
+# Testing
+phpunit.xml

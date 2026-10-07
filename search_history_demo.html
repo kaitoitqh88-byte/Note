@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🔍 Test Chức năng Lưu từ khóa tìm kiếm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .demo-section { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #17a2b8; }
+        .test-result { background: #1e2124; color: #00ff41; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .feature-demo { border: 2px dashed #17a2b8; padding: 15px; margin: 10px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1><i class="fas fa-search me-2"></i>Demo: Chức năng Lưu từ khóa tìm kiếm</h1>
+        
+        <div class="demo-section">
+            <h3><i class="fas fa-info-circle me-2"></i>Tính năng mới</h3>
+            <div class="alert alert-info">
+                <h5>🎉 Đã thêm thành công chức năng lưu từ khóa tìm kiếm!</h5>
+                <ul class="mb-0">
+                    <li><strong>💾 Lưu tự động:</strong> Mỗi lần tìm kiếm sẽ được lưu vào localStorage</li>
+                    <li><strong>📚 Lịch sử tìm kiếm:</strong> Hiển thị các từ khóa đã tìm gần đây</li>
+                    <li><strong>🔢 Đếm số lần sử dụng:</strong> Theo dõi tần suất sử dụng từ khóa</li>
+                    <li><strong>⚡ Tìm kiếm nhanh:</strong> Click vào từ khóa cũ để tìm lại</li>
+                    <li><strong>🗑️ Xóa lịch sử:</strong> Có thể xóa từng item hoặc xóa tất cả</li>
+                    <li><strong>📱 Responsive:</strong> Tối ưu cho mobile và desktop</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3><i class="fas fa-play me-2"></i>Demo trực tiếp</h3>
+            <div class="feature-demo">
+                <h5>🔗 Liên kết Test</h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="index.php?action=search" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-external-link-alt me-1"></i>Mở trang tìm kiếm
+                    </a>
+                    <a href="index.php?action=search&q=test" class="btn btn-success" target="_blank">
+                        <i class="fas fa-search me-1"></i>Test với từ khóa "test"
+                    </a>
+                    <a href="index.php?action=search&q=example&status=active" class="btn btn-info" target="_blank">
+                        <i class="fas fa-filter me-1"></i>Test với filter và từ khóa
+                    </a>
+                </div>
+            </div>
+            
+            <div class="feature-demo">
+                <h5>📋 Hướng dẫn test</h5>
+                <ol>
+                    <li>Mở trang tìm kiếm bằng link bên trên</li>
+                    <li>Thực hiện một vài tìm kiếm với từ khóa khác nhau</li>
+                    <li>Click vào biểu tượng <i class="fas fa-history"></i> để xem lịch sử</li>
+                    <li>Click vào từ khóa cũ để tìm lại</li>
+                    <li>Test xóa từng item hoặc xóa tất cả</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3><i class="fas fa-code me-2"></i>Kiểm tra LocalStorage</h3>
+            <button class="btn btn-primary me-2" onclick="checkLocalStorage()">
+                <i class="fas fa-database me-1"></i>Kiểm tra dữ liệu đã lưu
+            </button>
+            <button class="btn btn-warning me-2" onclick="simulateSearches()">
+                <i class="fas fa-magic me-1"></i>Tạo dữ liệu test
+            </button>
+            <button class="btn btn-danger" onclick="clearTestData()">
+                <i class="fas fa-trash me-1"></i>Xóa dữ liệu test
+            </button>
+            <div id="storageResult" class="test-result mt-3">
+Click button để kiểm tra localStorage...
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3><i class="fas fa-cogs me-2"></i>Test API Integration</h3>
+            <button class="btn btn-success me-2" onclick="testSearchHistory()">
+                <i class="fas fa-test me-1"></i>Test Search History API
+            </button>
+            <button class="btn btn-info me-2" onclick="testSearchWithHistory()">
+                <i class="fas fa-search-plus me-1"></i>Test Search + Save History
+            </button>
+            <div id="apiResult" class="test-result mt-3">
+Click button để test tích hợp API...
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3><i class="fas fa-mobile-alt me-2"></i>Responsive Test</h3>
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Mobile Test:</strong> Thay đổi kích thước cửa sổ browser hoặc dùng developer tools để test responsive
+            </div>
+            <div class="feature-demo">
+                <h6>Breakpoints:</h6>
+                <ul>
+                    <li>Desktop: Full features</li>
+                    <li>Mobile (&lt;768px): Compact layout, smaller buttons</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, elementId = 'storageResult') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.innerHTML += `[${timestamp}] ${message}\n`;
+            element.scrollTop = element.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        function checkLocalStorage() {
+            clearLog('storageResult');
+            log('🔍 Đang kiểm tra localStorage...', 'storageResult');
+            
+            try {
+                // Check search history
+                const history = localStorage.getItem('domainSearchHistory');
+                const counts = localStorage.getItem('domainSearchHistory_counts');
+                
+                log(`📚 Search History: ${history ? 'Found' : 'Not found'}`, 'storageResult');
+                if (history) {
+                    const parsed = JSON.parse(history);
+                    log(`   - Số lượng: ${parsed.length} items`, 'storageResult');
+                    parsed.forEach((item, index) => {
+                        log(`   - ${index + 1}. "${item.query}" [${item.status}] (${item.resultsCount} results)`, 'storageResult');
+                    });
+                }
+                
+                log(`🔢 Search Counts: ${counts ? 'Found' : 'Not found'}`, 'storageResult');
+                if (counts) {
+                    const parsedCounts = JSON.parse(counts);
+                    Object.entries(parsedCounts).forEach(([key, count]) => {
+                        log(`   - ${key}: ${count} times`, 'storageResult');
+                    });
+                }
+                
+                // Calculate storage usage
+                const totalSize = (history?.length || 0) + (counts?.length || 0);
+                log(`💾 Storage size: ~${totalSize} characters`, 'storageResult');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'storageResult');
+            }
+        }
+
+        function simulateSearches() {
+            clearLog('storageResult');
+            log('🎭 Tạo dữ liệu test...', 'storageResult');
+            
+            const testSearches = [
+                { query: 'example.com', status: 'active', results: 15 },
+                { query: 'test.org', status: '', results: 3 },
+                { query: 'domain.net', status: 'pending', results: 8 },
+                { query: '', status: 'active', results: 120 },
+                { query: 'mysite.com', status: '', results: 1 },
+            ];
+            
+            try {
+                const history = [];
+                const counts = {};
+                
+                testSearches.forEach((search, index) => {
+                    const timestamp = Date.now() - (index * 60000); // 1 minute apart
+                    const key = `${search.query.toLowerCase()}|${search.status.toLowerCase()}`;
+                    
+                    history.push({
+                        query: search.query,
+                        status: search.status,
+                        resultsCount: search.results,
+                        timestamp: timestamp,
+                        key: key
+                    });
+                    
+                    counts[key] = Math.floor(Math.random() * 5) + 1; // Random count 1-5
+                    
+                    log(`✅ Added: "${search.query}" [${search.status}]`, 'storageResult');
+                });
+                
+                localStorage.setItem('domainSearchHistory', JSON.stringify(history));
+                localStorage.setItem('domainSearchHistory_counts', JSON.stringify(counts));
+                
+                log(`🎉 Tạo thành công ${history.length} test searches!`, 'storageResult');
+                log('💡 Bây giờ hãy mở trang search để xem kết quả', 'storageResult');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'storageResult');
+            }
+        }
+
+        function clearTestData() {
+            clearLog('storageResult');
+            log('🗑️ Xóa dữ liệu test...', 'storageResult');
+            
+            try {
+                localStorage.removeItem('domainSearchHistory');
+                localStorage.removeItem('domainSearchHistory_counts');
+                log('✅ Đã xóa tất cả dữ liệu test', 'storageResult');
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'storageResult');
+            }
+        }
+
+        function testSearchHistory() {
+            clearLog('apiResult');
+            log('🧪 Testing Search History API integration...', 'apiResult');
+            
+            // Simulate what happens when user performs a search
+            const mockSearchData = {
+                query: 'test-from-demo',
+                status: 'active',
+                resultsCount: 42
+            };
+            
+            try {
+                // Check if we can access search history functions
+                if (typeof Storage !== "undefined") {
+                    log('✅ LocalStorage is supported', 'apiResult');
+                    
+                    // Test saving a search
+                    const history = JSON.parse(localStorage.getItem('domainSearchHistory') || '[]');
+                    const counts = JSON.parse(localStorage.getItem('domainSearchHistory_counts') || '{}');
+                    
+                    const key = `${mockSearchData.query.toLowerCase()}|${mockSearchData.status.toLowerCase()}`;
+                    
+                    // Add mock search
+                    const newItem = {
+                        query: mockSearchData.query,
+                        status: mockSearchData.status,
+                        resultsCount: mockSearchData.resultsCount,
+                        timestamp: Date.now(),
+                        key: key
+                    };
+                    
+                    history.unshift(newItem);
+                    counts[key] = (counts[key] || 0) + 1;
+                    
+                    localStorage.setItem('domainSearchHistory', JSON.stringify(history));
+                    localStorage.setItem('domainSearchHistory_counts', JSON.stringify(counts));
+                    
+                    log(`✅ Successfully saved mock search: "${mockSearchData.query}"`, 'apiResult');
+                    log(`📊 Current history length: ${history.length}`, 'apiResult');
+                    log(`🔢 Search count for this term: ${counts[key]}`, 'apiResult');
+                    
+                } else {
+                    log('❌ LocalStorage not supported', 'apiResult');
+                }
+                
+            } catch (error) {
+                log(`❌ API Test Error: ${error.message}`, 'apiResult');
+            }
+        }
+
+        function testSearchWithHistory() {
+            clearLog('apiResult');
+            log('🔗 Testing search integration with history...', 'apiResult');
+            
+            // Test the actual search API
+            fetch('index.php?action=search&api=1&q=test&page=1&per_page=5')
+                .then(response => {
+                    log(`📡 API Response: ${response.status}`, 'apiResult');
+                    return response.json();
+                })
+                .then(data => {
+                    log(`✅ Search API working`, 'apiResult');
+                    log(`📊 Results: ${data.data?.result?.length || 0}`, 'apiResult');
+                    
+                    // Simulate saving to history
+                    const searchData = {
+                        query: 'test',
+                        status: '',
+                        resultsCount: data.data?.result?.length || 0,
+                        timestamp: Date.now()
+                    };
+                    
+                    log(`💾 Would save to history: "${searchData.query}" (${searchData.resultsCount} results)`, 'apiResult');
+                    
+                    // Test the search page URL
+                    log('🔗 Search page URL: index.php?action=search', 'apiResult');
+                    log('💡 Open the search page to see the full integration!', 'apiResult');
+                    
+                })
+                .catch(error => {
+                    log(`❌ Search API Error: ${error.message}`, 'apiResult');
+                });
+        }
+
+        // Auto-check localStorage on page load
+        window.onload = function() {
+            setTimeout(() => {
+                log('🚀 Demo page loaded', 'storageResult');
+                log('💡 Click buttons above to test functionality', 'storageResult');
+            }, 500);
+        };
+    </script>
+</body>
+</html>

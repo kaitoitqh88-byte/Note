@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Cloudflare DNS API Live Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .demo-card { 
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .record-badge {
+            font-size: 0.8em;
+            margin: 2px;
+            padding: 4px 8px;
+        }
+        .proxied { background: #ff6b35; color: white; }
+        .dns-only { background: #6c757d; color: white; }
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .cloudflare-orange { color: #f48120; }
+        .stat-card { 
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="demo-card p-4">
+                    
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <h1 class="display-4">
+                            <i class="fab fa-cloudflare cloudflare-orange pulse"></i>
+                            <span class="gradient-text">Live Demo</span>
+                        </h1>
+                        <p class="lead text-muted">Test your Cloudflare DNS API trong thời gian thực</p>
+                    </div>
+
+                    <!-- Quick Test Section -->
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-primary text-white">
+                                    <h5><i class="fas fa-rocket"></i> Quick Test</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Domain để test:</label>
+                                        <input type="text" id="testDomain" class="form-control" 
+                                               placeholder="Nhập domain trong CF account" 
+                                               value="">
+                                        <small class="text-muted">Ví dụ: yoursite.com</small>
+                                    </div>
+                                    
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="includeProxied" checked>
+                                        <label class="form-check-label" for="includeProxied">
+                                            🟠 Include Proxied Records
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="enableComparison" checked>
+                                        <label class="form-check-label" for="enableComparison">
+                                            ⚖️ Compare with Public DNS
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-success" onclick="runDemo()">
+                                            <i class="fas fa-play"></i> Run Demo
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="showAvailableDomains()">
+                                            <i class="fas fa-list"></i> Show My Domains
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="loading-spinner" id="loadingSpinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-info text-white">
+                                    <h5><i class="fas fa-chart-bar"></i> Results Dashboard</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="resultsArea">
+                                        <div class="text-center text-muted py-5">
+                                            <i class="fas fa-arrow-left fa-3x mb-3"></i>
+                                            <h5>Nhập domain và click "Run Demo" để bắt đầu test</h5>
+                                            <p>Demo sẽ hiển thị real-time data từ Cloudflare API</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Status -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6><i class="fas fa-info-circle"></i> API Status:</h6>
+                                        <small>
+                                            <strong>Token:</strong> <code id="apiToken">Loading...</code><br>
+                                            <strong>Email:</strong> <code id="apiEmail">Loading...</code><br>
+                                            <strong>Endpoint:</strong> <code>/index.php?action=cloudflare-dns</code>
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="testConnection()">
+                                            <i class="fas fa-wifi"></i> Test Connection
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentData = null;
+
+        // Load API info on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAPIInfo();
+            
+            // Auto-focus on domain input
+            document.getElementById('testDomain').focus();
+            
+            // Enter key to run demo
+            document.getElementById('testDomain').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    runDemo();
+                }
+            });
+        });
+
+        async function loadAPIInfo() {
+            try {
+                const response = await fetch('/Note/config.php');
+                const text = await response.text();
+                
+                // Extract email and token from config
+                const emailMatch = text.match(/CLOUDFLARE_EMAIL.*?['"]([^'"]+)['"]/);
+                const tokenMatch = text.match(/xo06NWTZ68kEyAWiOX5lHKevk44Wf9lNXCxluWjA/);
+                
+                document.getElementById('apiEmail').textContent = emailMatch ? emailMatch[1] : 'Not configured';
+                document.getElementById('apiToken').textContent = tokenMatch ? 'xo06NWTZ...9lNXCxluWjA' : 'Not found';
+            } catch (error) {
+                console.error('Error loading API info:', error);
+                document.getElementById('apiEmail').textContent = 'Error loading';
+                document.getElementById('apiToken').textContent = 'Error loading';
+            }
+        }
+
+        async function testConnection() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/Note/index.php?action=cloudflare-dns&domain=test.com&_test_connection=1');
+                const data = await response.json();
+                
+                if (data.success || data.error) {
+                    btn.innerHTML = '<i class="fas fa-check text-success"></i> Connected';
+                    btn.className = 'btn btn-sm btn-success';
+                } else {
+                    btn.innerHTML = '<i class="fas fa-times text-danger"></i> Failed';
+                    btn.className = 'btn btn-sm btn-danger';
+                }
+            } catch (error) {
+                btn.innerHTML = '<i class="fas fa-times text-danger"></i> Error';
+                btn.className = 'btn btn-sm btn-danger';
+            }
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.className = 'btn btn-sm btn-outline-primary';
+                btn.disabled = false;
+            }, 2000);
+        }
+
+        async function showAvailableDomains() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('resultsArea').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading your domains...</div>';
+
+            try {
+                const response = await fetch('/Note/index.php?action=cloudflare-dns&_list_domains=1');
+                const data = await response.json();
+                
+                if (data.success && data.domains) {
+                    let html = `
+                        <h6><i class="fas fa-globe"></i> Domains trong Cloudflare account của bạn:</h6>
+                        <div class="row">
+                    `;
+                    
+                    data.domains.forEach(domain => {
+                        html += `
+                            <div class="col-md-6 mb-2">
+                                <div class="card card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${domain.name}</strong>
+                                            <small class="text-muted d-block">Status: ${domain.status}</small>
+                                        </div>
+                                        <button class="btn btn-sm btn-primary" onclick="document.getElementById('testDomain').value='${domain.name}'; runDemo();">
+                                            <i class="fas fa-play"></i> Test
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div>`;
+                    html += `<div class="alert alert-info mt-3">
+                        <i class="fas fa-lightbulb"></i> 
+                        <strong>Tip:</strong> Click nút "Test" để test DNS lookup cho domain đó, hoặc copy domain name và test manual.
+                    </div>`;
+                    
+                    document.getElementById('resultsArea').innerHTML = html;
+                } else {
+                    document.getElementById('resultsArea').innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            Không tìm thấy domains hoặc lỗi API: ${data.error || 'Unknown error'}
+                            <div class="mt-2">
+                                <small>Possible issues:</small>
+                                <ul class="small mb-0">
+                                    <li>API token không đúng</li>
+                                    <li>Email Cloudflare không match</li>
+                                    <li>Không có domains trong account</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('resultsArea').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times"></i> Error loading domains: ${error.message}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        async function runDemo() {
+            const domain = document.getElementById('testDomain').value.trim();
+            if (!domain) {
+                alert('Vui lòng nhập domain name!');
+                return;
+            }
+
+            const includeProxied = document.getElementById('includeProxied').checked;
+            const enableComparison = document.getElementById('enableComparison').checked;
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('resultsArea').innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+                    <h6>Đang lấy DNS records từ Cloudflare API...</h6>
+                    <small class="text-muted">Domain: ${domain}</small>
+                </div>
+            `;
+
+            try {
+                // Build API URL
+                const url = new URL('/Note/index.php', window.location.origin);
+                url.searchParams.set('action', 'cloudflare-dns');
+                url.searchParams.set('domain', domain);
+                url.searchParams.set('include_proxied', includeProxied ? 'true' : 'false');
+                url.searchParams.set('show_only_active', 'true');
+                url.searchParams.set('compare_dns', enableComparison ? 'true' : 'false');
+
+                console.log('API Call:', url.toString());
+
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                currentData = data;
+                console.log('API Response:', data);
+
+                if (data.success) {
+                    displayResults(data.data);
+                } else {
+                    displayError(data.error || 'Unknown error', data);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                displayError('Network error: ' + error.message);
+            }
+
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function displayResults(data) {
+            const stats = data.statistics;
+            const records = data.cloudflare_records;
+            const comparison = data.comparison;
+
+            let html = `
+                <!-- Statistics Dashboard -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <h3 class="text-primary">${stats.total_records}</h3>
+                            <small>Total Records</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <h3 class="text-warning">${stats.proxied_records}</h3>
+                            <small>🟠 Proxied</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <h3 class="text-secondary">${stats.dns_only_records}</h3>
+                            <small>⚫ DNS Only</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <h3 class="text-info">${Object.keys(stats.record_types || {}).length}</h3>
+                            <small>Record Types</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domain Info -->
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle"></i> ✅ DNS Lookup thành công!</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Domain:</strong> ${data.domain}<br>
+                            <strong>Zone ID:</strong> <small>${data.zone_id}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportCSV()">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyZoneId('${data.zone_id}')">
+                                <i class="fas fa-copy"></i> Copy Zone ID
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DNS Records -->
+                <div class="accordion" id="recordsAccordion">
+            `;
+
+            // Display records by type
+            let recordIndex = 0;
+            for (const [type, recordList] of Object.entries(records)) {
+                html += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading${recordIndex}">
+                            <button class="accordion-button ${recordIndex > 0 ? 'collapsed' : ''}" 
+                                    type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse${recordIndex}">
+                                <span class="record-badge ${type.toLowerCase()}">${type}</span>
+                                &nbsp;&nbsp;${recordList.length} records
+                            </button>
+                        </h2>
+                        <div id="collapse${recordIndex}" 
+                             class="accordion-collapse collapse ${recordIndex === 0 ? 'show' : ''}" 
+                             data-bs-parent="#recordsAccordion">
+                            <div class="accordion-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Content</th>
+                                                <th>Proxy</th>
+                                                <th>TTL</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                `;
+
+                recordList.forEach(record => {
+                    const proxyBadge = record.proxied ? 
+                        '<span class="badge proxied">🟠 Proxied</span>' : 
+                        '<span class="badge dns-only">⚫ DNS Only</span>';
+                    
+                    html += `
+                        <tr>
+                            <td><small>${record.name}</small></td>
+                            <td><code>${record.content}</code></td>
+                            <td>${proxyBadge}</td>
+                            <td>${record.ttl == 1 ? 'Auto' : record.ttl}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                recordIndex++;
+            }
+
+            html += `</div>`;
+
+            // Comparison results
+            if (comparison) {
+                const comp = comparison.summary;
+                html += `
+                    <div class="mt-4">
+                        <h6><i class="fas fa-balance-scale"></i> DNS Comparison Results:</h6>
+                        <div class="row">
+                            <div class="col-3">
+                                <div class="text-center p-3 bg-success text-white rounded">
+                                    <h5>${comp.total_matches}</h5>
+                                    <small>Matches</small>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-center p-3 bg-warning text-dark rounded">
+                                    <h5>${comp.total_mismatches}</h5>
+                                    <small>Mismatches</small>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-center p-3 bg-info text-white rounded">
+                                    <h5>${comp.cloudflare_only_count}</h5>
+                                    <small>CF Only</small>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-center p-3 bg-secondary text-white rounded">
+                                    <h5>${comp.public_only_count}</h5>
+                                    <small>Public Only</small>
+                                </div>
+                            </div>
+                        </div>
+                `;
+                
+                if (comp.total_mismatches > 0) {
+                    html += `
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Warning:</strong> Found ${comp.total_mismatches} DNS mismatches. 
+                            This could be normal for proxied records.
+                        </div>
+                    `;
+                }
+                
+                html += `</div>`;
+            }
+
+            document.getElementById('resultsArea').innerHTML = html;
+        }
+
+        function displayError(error, data = null) {
+            let html = `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-times-circle"></i> ❌ API Error</h6>
+                    <p><strong>Error:</strong> ${error}</p>
+            `;
+            
+            // Show available domains if provided in error response
+            if (data && data.available_domains && Array.isArray(data.available_domains)) {
+                html += `
+                    <div class="mt-3">
+                        <h6><i class="fas fa-globe"></i> Available domains trong account:</h6>
+                        <div class="row">
+                `;
+                
+                data.available_domains.forEach(domain => {
+                    html += `
+                        <div class="col-md-4 mb-1">
+                            <button class="btn btn-sm btn-outline-primary w-100" 
+                                    onclick="document.getElementById('testDomain').value='${domain}'; runDemo();">
+                                ${domain}
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                        <p class="mt-2"><small><i class="fas fa-lightbulb"></i> Click vào domain trên để test ngay</small></p>
+                    </div>
+                `;
+            }
+            
+            html += `
+                    <small class="text-muted">
+                        <strong>Common issues:</strong>
+                        <ul class="mb-0">
+                            <li>Domain không có trong Cloudflare account</li>
+                            <li>API token không đúng hoặc hết hạn</li>
+                            <li>Không có quyền truy cập zone này</li>
+                        </ul>
+                    </small>
+            `;
+            
+            // Add button to show all domains
+            html += `
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-info" onclick="showAvailableDomains()">
+                            <i class="fas fa-list"></i> Show All My Domains
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultsArea').innerHTML = html;
+        }
+
+        function exportCSV() {
+            if (!currentData) return;
+            
+            // Generate CSV content
+            let csv = 'Type,Name,Content,Proxied,TTL\n';
+            
+            for (const [type, records] of Object.entries(currentData.cloudflare_records)) {
+                records.forEach(record => {
+                    csv += `"${type}","${record.name}","${record.content}","${record.proxied ? 'Yes' : 'No'}","${record.ttl}"\n`;
+                });
+            }
+            
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cloudflare-dns-${currentData.domain}-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function copyZoneId(zoneId) {
+            navigator.clipboard.writeText(zoneId).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.className = 'btn btn-sm btn-success';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.className = 'btn btn-sm btn-outline-secondary';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

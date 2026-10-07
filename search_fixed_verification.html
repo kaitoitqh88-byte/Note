@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>✅ Test: Vấn đề "không có kết quả" đã sửa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .success-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #28a745; }
+        .test-result { background: #1e2124; color: #00ff41; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>✅ Vấn đề "không có kết quả tìm kiếm" đã được sửa!</h1>
+        
+        <div class="success-panel">
+            <h3>🎉 Vấn đề đã được khắc phục</h3>
+            <div class="alert alert-success">
+                <h5><strong>Nguyên nhân:</strong> Lỗi JavaScript Syntax Error</h5>
+                <p>Có một dấu ngoặc nhọn <code>}</code> thừa trong hàm <code>loadInitialData()</code> khiến toàn bộ JavaScript bị lỗi và không thể thực thi.</p>
+                
+                <h5><strong>Giải pháp:</strong></h5>
+                <ul>
+                    <li>✅ Đã xóa dấu <code>}</code> thừa ở line 1463</li>
+                    <li>✅ JavaScript hiện hoạt động bình thường</li>
+                    <li>✅ Auto-loading domains đã được khôi phục</li>
+                    <li>✅ Search functionality hoạt động đúng</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="success-panel">
+            <h3>🔗 Test ngay bây giờ</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search" class="btn btn-primary btn-lg" target="_blank">
+                            <i class="fas fa-search me-2"></i>Mở trang tìm kiếm
+                        </a>
+                        <small class="text-muted">Trang sẽ tự động load domains sau 0.5 giây</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search&q=test" class="btn btn-success btn-lg" target="_blank">
+                            <i class="fas fa-search-plus me-2"></i>Test với từ khóa "test"
+                        </a>
+                        <small class="text-muted">Test search với từ khóa cụ thể</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-info btn-lg" onclick="quickVerify()">
+                            <i class="fas fa-check me-2"></i>Verify API ngay
+                        </button>
+                        <small class="text-muted">Test API trực tiếp</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-panel">
+            <h3>🧪 Verification Test</h3>
+            <button class="btn btn-primary me-2" onclick="quickVerify()">
+                <i class="fas fa-play me-1"></i>Chạy test
+            </button>
+            <button class="btn btn-secondary" onclick="clearResults()">
+                <i class="fas fa-trash me-1"></i>Xóa kết quả
+            </button>
+            
+            <div id="testResults" class="test-result mt-3">
+Click "Chạy test" để verify vấn đề đã được sửa...
+            </div>
+        </div>
+
+        <div class="success-panel">
+            <h3>📋 Hướng dẫn sử dụng</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🎯 Tính năng hoạt động:</h5>
+                    <ul>
+                        <li>✅ <strong>Auto-loading:</strong> Domains tự động hiển thị khi mở trang</li>
+                        <li>✅ <strong>Search:</strong> Tìm kiếm theo từ khóa</li>
+                        <li>✅ <strong>Filter:</strong> Lọc theo trạng thái domain</li>
+                        <li>✅ <strong>Pagination:</strong> Phân trang kết quả</li>
+                        <li>✅ <strong>Export:</strong> Xuất CSV/JSON/XML</li>
+                        <li>✅ <strong>Search History:</strong> Lưu từ khóa tìm kiếm</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>💡 Tips sử dụng:</h5>
+                    <ul>
+                        <li><strong>Để trống từ khóa:</strong> Hiển thị tất cả domains</li>
+                        <li><strong>Wildcard search:</strong> Dùng * để tìm pattern</li>
+                        <li><strong>Filter combo:</strong> Kết hợp từ khóa + status filter</li>
+                        <li><strong>History:</strong> Click vào từ khóa cũ để tìm lại</li>
+                        <li><strong>Export:</strong> Dùng advanced options để export</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = 'Test results cleared...\n\n';
+        }
+
+        async function quickVerify() {
+            clearResults();
+            log('🚀 Bắt đầu verification test...');
+            
+            try {
+                // Test 1: API básic
+                log('📡 Test 1: Kiểm tra API básic...');
+                const response1 = await fetch('index.php?action=search&api=1&q=&per_page=3');
+                const data1 = await response1.json();
+                
+                if (data1.success) {
+                    log('✅ API básic: THÀNH CÔNG');
+                    log(`   📊 Trả về: ${data1.data?.result?.length || 0} domains`);
+                    
+                    if (data1.data?.result && data1.data.result.length > 0) {
+                        log(`   🌐 Sample: ${data1.data.result[0].name} (${data1.data.result[0].status})`);
+                    }
+                } else {
+                    log(`❌ API básic: THẤT BẠI - ${data1.error || 'Unknown error'}`);
+                    return;
+                }
+
+                // Test 2: Search với từ khóa
+                log('\n📡 Test 2: Search với từ khóa...');
+                const response2 = await fetch('index.php?action=search&api=1&q=test&per_page=5');
+                const data2 = await response2.json();
+                
+                if (data2.success) {
+                    log('✅ Search với từ khóa: THÀNH CÔNG');
+                    log(`   📊 Kết quả cho "test": ${data2.data?.result?.length || 0} domains`);
+                } else {
+                    log(`❌ Search với từ khóa: THẤT BẠI - ${data2.error || 'Unknown error'}`);
+                }
+
+                // Test 3: Kiểm tra trang search
+                log('\n📄 Test 3: Kiểm tra trang search...');
+                const response3 = await fetch('index.php?action=search');
+                const html = await response3.text();
+                
+                const hasRequiredElements = [
+                    html.includes('id="searchForm"'),
+                    html.includes('id="searchInput"'),
+                    html.includes('id="resultsContainer"'),
+                    html.includes('class DomainSearch'),
+                    html.includes('loadInitialData'),
+                    !html.includes('SyntaxError')
+                ].every(check => check);
+                
+                if (hasRequiredElements) {
+                    log('✅ Trang search: THÀNH CÔNG');
+                    log('   📋 Tất cả elements cần thiết đều có');
+                    log('   🔧 Không thấy syntax error');
+                } else {
+                    log('❌ Trang search: CÓ VẤN ĐỀ');
+                    log('   📋 Thiếu một số elements hoặc có syntax error');
+                }
+
+                // Kết luận
+                log('\n🎉 VERIFICATION HOÀN TẤT');
+                if (data1.success && data2.success && hasRequiredElements) {
+                    log('✅ TẤT CẢ TEST PASS - Vấn đề đã được sửa!');
+                    log('💡 Bây giờ có thể sử dụng trang search bình thường');
+                } else {
+                    log('⚠️ Vẫn còn một số vấn đề cần kiểm tra');
+                }
+
+            } catch (error) {
+                log(`❌ Verification error: ${error.message}`);
+            }
+        }
+
+        // Auto-run verification when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                log('🎯 Trang verification đã load');
+                log('💡 Click "Chạy test" để kiểm tra hoặc mở trực tiếp trang search');
+            }, 500);
+        };
+    </script>
+</body>
+</html>

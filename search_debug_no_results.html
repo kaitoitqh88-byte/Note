@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🔧 Debug: Tìm kiếm domain không có kết quả</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .debug-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #dc3545; }
+        .console-output { background: #1e2124; color: #00ff41; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        .test-btn { margin: 5px; }
+        .status-ok { color: #28a745; font-weight: bold; }
+        .status-error { color: #dc3545; font-weight: bold; }
+        .status-warning { color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>🔧 Debug: Tìm kiếm domain không có kết quả</h1>
+        
+        <div class="debug-panel">
+            <h3>🚨 Vấn đề báo cáo</h3>
+            <div class="alert alert-warning">
+                <strong>Vấn đề:</strong> Trang tìm kiếm domain không hiển thị kết quả khi thực hiện tìm kiếm.
+            </div>
+            
+            <h4>🔍 Các bước debug:</h4>
+            <div class="mb-3">
+                <button class="btn btn-primary test-btn" onclick="step1_checkAPI()">
+                    Bước 1: Kiểm tra API
+                </button>
+                <button class="btn btn-info test-btn" onclick="step2_checkSearchPage()">
+                    Bước 2: Kiểm tra trang Search
+                </button>
+                <button class="btn btn-warning test-btn" onclick="step3_checkJavaScript()">
+                    Bước 3: Kiểm tra JavaScript
+                </button>
+                <button class="btn btn-success test-btn" onclick="step4_fixIssues()">
+                    Bước 4: Sửa lỗi
+                </button>
+                <button class="btn btn-secondary test-btn" onclick="clearOutput()">
+                    Xóa log
+                </button>
+            </div>
+            
+            <div id="debugOutput" class="console-output">
+=== Debug Console ===
+Sẵn sàng kiểm tra vấn đề tìm kiếm...
+
+            </div>
+        </div>
+        
+        <div class="debug-panel">
+            <h3>⚡ Test nhanh</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Test Query:</label>
+                        <input type="text" id="testQuery" class="form-control" placeholder="Nhập từ khóa test..." value="">
+                    </div>
+                    <button class="btn btn-outline-primary" onclick="quickTest()">
+                        🚀 Test nhanh
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <div id="quickTestResult" class="console-output" style="height: 150px;">
+                        Nhập từ khóa và click "Test nhanh"...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const debugOutput = document.getElementById('debugOutput');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+            const icon = icons[type] || 'ℹ️';
+            
+            debugOutput.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearOutput() {
+            debugOutput.innerHTML = '=== Debug Console ===\nConsole đã được xóa...\n\n';
+        }
+
+        async function step1_checkAPI() {
+            log('🔍 Bước 1: Kiểm tra API endpoint...', 'info');
+            
+            try {
+                // Test basic API call without parameters
+                const url1 = 'index.php?action=search&api=1&q=&page=1&per_page=3';
+                log(`📡 Testing: ${url1}`, 'info');
+                
+                const response1 = await fetch(url1);
+                log(`📊 Response status: ${response1.status}`, response1.ok ? 'success' : 'error');
+                
+                const contentType = response1.headers.get('content-type');
+                log(`📄 Content-Type: ${contentType}`, 'info');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const data1 = await response1.json();
+                    log(`✅ API Response OK`, 'success');
+                    log(`📊 Success: ${data1.success}`, 'info');
+                    log(`📊 Data exists: ${!!data1.data}`, 'info');
+                    log(`📊 Results count: ${data1.data?.result?.length || 0}`, 'info');
+                    log(`📊 Total available: ${data1.data?.result_info?.total_count || 0}`, 'info');
+                    
+                    if (data1.data?.result && data1.data.result.length > 0) {
+                        log(`🌐 Sample domain: ${data1.data.result[0].name}`, 'success');
+                        log(`📈 Sample status: ${data1.data.result[0].status}`, 'info');
+                        log(`🎉 API trả về dữ liệu BÌNH THƯỜNG`, 'success');
+                    } else {
+                        log(`⚠️ API không trả về domains`, 'warning');
+                        log(`🔍 Có thể không có domain nào hoặc filter quá strict`, 'warning');
+                    }
+                    
+                    // Test with a specific query
+                    const url2 = 'index.php?action=search&api=1&q=test&page=1&per_page=5';
+                    log(`\n📡 Testing with query: ${url2}`, 'info');
+                    
+                    const response2 = await fetch(url2);
+                    const data2 = await response2.json();
+                    log(`📊 Query results: ${data2.data?.result?.length || 0}`, 'info');
+                    
+                } else {
+                    const text = await response1.text();
+                    log(`❌ Response không phải JSON:`, 'error');
+                    log(`${text.substring(0, 300)}...`, 'error');
+                }
+                
+                log(`\n🏁 Bước 1 hoàn thành.`, 'success');
+                
+            } catch (error) {
+                log(`❌ Lỗi API: ${error.message}`, 'error');
+                log(`💡 Có thể: Server không chạy hoặc URL sai`, 'warning');
+            }
+        }
+
+        async function step2_checkSearchPage() {
+            log(`\n🔍 Bước 2: Kiểm tra trang Search...`, 'info');
+            
+            try {
+                const response = await fetch('index.php?action=search');
+                log(`📊 Search page status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const html = await response.text();
+                log(`📄 Page size: ${html.length} characters`, 'info');
+                
+                // Check for critical elements
+                const checks = [
+                    { name: 'searchForm', present: html.includes('id="searchForm"') },
+                    { name: 'searchInput', present: html.includes('id="searchInput"') },
+                    { name: 'resultsContainer', present: html.includes('id="resultsContainer"') },
+                    { name: 'DomainSearch class', present: html.includes('class DomainSearch') },
+                    { name: 'performSearch method', present: html.includes('performSearch') },
+                    { name: 'Bootstrap CSS', present: html.includes('bootstrap') },
+                    { name: 'FontAwesome', present: html.includes('fontawesome') || html.includes('fa-') }
+                ];
+                
+                log(`\n📋 Kiểm tra elements:`, 'info');
+                checks.forEach(check => {
+                    log(`   ${check.name}: ${check.present ? '✅' : '❌'}`, check.present ? 'success' : 'error');
+                });
+                
+                // Check for JavaScript errors
+                const hasJSError = html.includes('SyntaxError') || html.includes('Unexpected');
+                if (hasJSError) {
+                    log(`❌ Phát hiện syntax error trong JavaScript!`, 'error');
+                } else {
+                    log(`✅ Không thấy syntax error`, 'success');
+                }
+                
+                // Check for auto-loading
+                const hasAutoLoad = html.includes('loadInitialData') && html.includes('performSearch(1)');
+                log(`🔄 Auto-load functionality: ${hasAutoLoad ? '✅' : '❌'}`, hasAutoLoad ? 'success' : 'error');
+                
+                log(`\n🏁 Bước 2 hoàn thành.`, 'success');
+                
+            } catch (error) {
+                log(`❌ Lỗi check trang: ${error.message}`, 'error');
+            }
+        }
+
+        async function step3_checkJavaScript() {
+            log(`\n🔍 Bước 3: Kiểm tra JavaScript functionality...`, 'info');
+            
+            try {
+                // Test if we can instantiate the search functionality
+                log(`🧪 Testing JavaScript capabilities...`, 'info');
+                
+                // Check localStorage
+                if (typeof(Storage) !== "undefined") {
+                    log(`✅ LocalStorage available`, 'success');
+                } else {
+                    log(`❌ LocalStorage not available`, 'error');
+                }
+                
+                // Check fetch API
+                if (typeof(fetch) !== "undefined") {
+                    log(`✅ Fetch API available`, 'success');
+                } else {
+                    log(`❌ Fetch API not available`, 'error');
+                }
+                
+                // Test a simple search
+                log(`🔍 Testing mock search...`, 'info');
+                const testResponse = await fetch('index.php?action=search&api=1&q=&per_page=1');
+                const testData = await testResponse.json();
+                
+                if (testData.success) {
+                    log(`✅ Mock search successful`, 'success');
+                    log(`📊 Can reach API and get response`, 'success');
+                } else {
+                    log(`❌ Mock search failed`, 'error');
+                    log(`📊 Error: ${testData.error || 'Unknown'}`, 'error');
+                }
+                
+                log(`\n🏁 Bước 3 hoàn thành.`, 'success');
+                
+            } catch (error) {
+                log(`❌ Lỗi JavaScript test: ${error.message}`, 'error');
+            }
+        }
+
+        async function step4_fixIssues() {
+            log(`\n🔧 Bước 4: Phân tích và đưa ra giải pháp...`, 'info');
+            
+            log(`\n📋 TÓM TẮT VẤN ĐỀ:`, 'info');
+            
+            // Re-run a comprehensive test
+            try {
+                const apiTest = await fetch('index.php?action=search&api=1&q=&per_page=3');
+                const apiData = await apiTest.json();
+                
+                const pageTest = await fetch('index.php?action=search');
+                const pageHtml = await pageTest.text();
+                
+                const hasElements = pageHtml.includes('id="searchForm"') && 
+                                  pageHtml.includes('id="resultsContainer"') &&
+                                  pageHtml.includes('DomainSearch');
+                
+                const hasAutoLoad = pageHtml.includes('loadInitialData') && 
+                                   pageHtml.includes('performSearch(1)');
+                
+                log(`\n🎯 CHẨN ĐOÁN:`, 'warning');
+                
+                if (!apiTest.ok || !apiData.success) {
+                    log(`❌ API không hoạt động đúng`, 'error');
+                    log(`💡 GIẢI PHÁP: Kiểm tra server, database connection`, 'warning');
+                }
+                
+                if (!hasElements) {
+                    log(`❌ Thiếu elements quan trọng trong HTML`, 'error');
+                    log(`💡 GIẢI PHÁP: Rebuild search.php với đầy đủ elements`, 'warning');
+                }
+                
+                if (!hasAutoLoad) {
+                    log(`❌ Không có auto-load functionality`, 'error');
+                    log(`💡 GIẢI PHÁP: Thêm loadInitialData() và auto-trigger`, 'warning');
+                }
+                
+                if (apiData.success && hasElements && hasAutoLoad) {
+                    log(`✅ TẤT CẢ COMPONENTS HOẠT ĐỘNG BÌNH THƯỜNG`, 'success');
+                    log(`💡 VẤN ĐỀ CÓ THỂ LÀ:`, 'warning');
+                    log(`   - JavaScript bị block hoặc có lỗi runtime`, 'warning');
+                    log(`   - CSS ẩn results container`, 'warning');
+                    log(`   - Browser cache cũ`, 'warning');
+                    log(`   - Console có error messages`, 'warning');
+                }
+                
+                log(`\n🛠️ CÁC BƯỚC SỬA LỖI ĐỀ XUẤT:`, 'success');
+                log(`1. Mở Developer Tools (F12) và check Console tab`, 'info');
+                log(`2. Hard refresh (Ctrl+F5) để clear cache`, 'info');
+                log(`3. Kiểm tra Network tab xem API calls có được gửi không`, 'info');
+                log(`4. Thử disable browser extensions`, 'info');
+                log(`5. Test trên trình duyệt khác`, 'info');
+                
+            } catch (error) {
+                log(`❌ Lỗi trong quá trình chẩn đoán: ${error.message}`, 'error');
+            }
+        }
+
+        async function quickTest() {
+            const query = document.getElementById('testQuery').value;
+            const output = document.getElementById('quickTestResult');
+            output.innerHTML = '';
+            
+            const quickLog = (msg) => {
+                const time = new Date().toLocaleTimeString();
+                output.innerHTML += `[${time}] ${msg}\n`;
+                output.scrollTop = output.scrollHeight;
+            };
+            
+            quickLog(`🚀 Testing search with query: "${query}"`);
+            
+            try {
+                const url = `index.php?action=search&api=1&q=${encodeURIComponent(query)}&per_page=5`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                quickLog(`📊 Status: ${response.status}`);
+                quickLog(`📊 Success: ${data.success}`);
+                quickLog(`📊 Results: ${data.data?.result?.length || 0}`);
+                
+                if (data.data?.result && data.data.result.length > 0) {
+                    quickLog(`✅ API HOẠT ĐỘNG BÌNH THƯỜNG`);
+                    quickLog(`🌐 Sample: ${data.data.result[0].name}`);
+                } else {
+                    quickLog(`⚠️ Không có kết quả`);
+                }
+                
+            } catch (error) {
+                quickLog(`❌ Error: ${error.message}`);
+            }
+        }
+        
+        // Auto-run step 1 when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                log('🚀 Debug page loaded. Bắt đầu kiểm tra...', 'success');
+                step1_checkAPI();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

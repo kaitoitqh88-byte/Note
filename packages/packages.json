@@ -1,0 +1,18 @@
+{
+  "name": "cloudflare-security-tool",
+  "version": "1.0.0",
+  "description": "Portable Cloudflare Security Rules Management Tool",
+  "build_time": "2026-03-13 15:47:56 UTC",
+  "packages": [
+    {
+      "filename": "cloudflare-security-tool-portable-v1.0.0.zip",
+      "platform": "portable",
+      "size_bytes": 11728
+    },
+    {
+      "filename": "cloudflare-security-tool-windows-v1.0.0.zip",
+      "platform": "windows",
+      "size_bytes": 11868
+    }
+  ]
+}

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>aaPanel WordPress Sites Manager - Demo UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="assets/css/aapanel-manager.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <div class="aapanel-hero hero-section">
+        <div class="container text-center">
+            <h1 class="display-5 mb-3">
+                <i class="fas fa-server me-3"></i>
+                aaPanel WordPress Sites Manager
+            </h1>
+            <p class="lead mb-4">Lấy danh sách WordPress sites từ WP-toolkit trên các aaPanel servers</p>
+            <button type="button" class="btn btn-scan btn-lg" id="scanAllBtn">
+                <i class="fas fa-search me-2"></i>Quét tất cả VPS
+            </button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Statistics -->
+        <div class="row" id="statsSection">
+            <div class="col-md-12">
+                <div class="aapanel-stats stats-card">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h3 class="mb-1">3</h3>
+                            <small>Tổng VPS</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="mb-1">2</h3>
+                            <small>VPS thành công</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="mb-1">8</h3>
+                            <small>Tổng WP Sites</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="mb-1">4.0</h3>
+                            <small>Sites trung bình/VPS</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VPS List -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="aapanel-card card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-server me-2"></i>
+                            Danh sách VPS
+                        </h5>
+                    </div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        <!-- VPS Card 1 - Success -->
+                        <div class="vps-card success active" onclick="showVPSDetails('103.213.216.171')">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title mb-1">
+                                            <span class="status-indicator status-online"></span>
+                                            103.213.216.171
+                                        </h6>
+                                        <small class="text-muted d-block">Panel: 103.213.216.171:20717</small>
+                                        <small class="text-muted d-block">User: zx7aetbiz</small>
+                                        <div class="mt-2">
+                                            <span class="badge badge-aapanel badge-wp-version">
+                                                <i class="fab fa-wordpress me-1"></i>5 sites
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- VPS Card 2 - Success -->
+                        <div class="vps-card success" onclick="showVPSDetails('192.168.1.100')">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title mb-1">
+                                            <span class="status-indicator status-online"></span>
+                                            192.168.1.100
+                                        </h6>
+                                        <small class="text-muted d-block">Panel: server2.example.com</small>
+                                        <small class="text-muted d-block">User: admin</small>
+                                        <div class="mt-2">
+                                            <span class="badge badge-aapanel badge-wp-version">
+                                                <i class="fab fa-wordpress me-1"></i>3 sites
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- VPS Card 3 - Error -->
+                        <div class="vps-card error" onclick="showVPSDetails('10.0.0.1')">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title mb-1">
+                                            <span class="status-indicator status-offline"></span>
+                                            10.0.0.1
+                                        </h6>
+                                        <small class="text-muted d-block">Panel: server3.example.com</small>
+                                        <small class="text-muted d-block">User: root</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Lỗi
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- WordPress Sites Details -->
+            <div class="col-md-8">
+                <div class="aapanel-card card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fab fa-wordpress me-2"></i>
+                            WordPress Sites
+                        </h5>
+                        <span class="text-muted">VPS: 103.213.216.171</span>
+                    </div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        <div id="sitesDetails">
+                            <!-- Site 1 -->
+                            <div class="site-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">example1.com</h6>
+                                        <p class="mb-1 text-muted">/var/www/example1.com</p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-aapanel badge-wp-version me-1">WP 6.4.2</span>
+                                            <span class="badge badge-aapanel badge-status-active">Active</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-primary mb-1">Admin</a><br>
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-success">View Site</a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Site 2 -->
+                            <div class="site-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">blog.example.com</h6>
+                                        <p class="mb-1 text-muted">/var/www/blog.example.com</p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-aapanel badge-wp-version me-1">WP 6.3.1</span>
+                                            <span class="badge badge-aapanel badge-status-active">Active</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-primary mb-1">Admin</a><br>
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-success">View Site</a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Site 3 -->
+                            <div class="site-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">shop.example.com</h6>
+                                        <p class="mb-1 text-muted">/var/www/shop.example.com</p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-aapanel badge-wp-version me-1">WP 6.4.2</span>
+                                            <span class="badge badge-aapanel badge-status-inactive">Maintenance</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-primary mb-1">Admin</a><br>
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-success">View Site</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="aapanel-card card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Kết quả chi tiết
+                        </h5>
+                        <button class="btn btn-export btn-success btn-sm">
+                            <i class="fas fa-download me-1"></i>Xuất CSV
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Demo Mode:</strong> Đây là giao diện demo. Trong thực tế, dữ liệu sẽ được lấy từ aaPanel API.
+                        </div>
+                        
+                        <h6 class="border-bottom pb-2">
+                            <i class="fas fa-server me-2"></i>
+                            VPS: 103.213.216.171 
+                            <span class="badge bg-success ms-2">5 sites</span>
+                        </h6>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Domain</th>
+                                                <th>Path</th>
+                                                <th>WP Version</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>example1.com</strong></td>
+                                                <td>/var/www/example1.com</td>
+                                                <td><span class="badge badge-aapanel badge-wp-version">6.4.2</span></td>
+                                                <td><span class="badge badge-aapanel badge-status-active">Active</span></td>
+                                                <td>
+                                                    <a href="#" class="btn btn-sm btn-outline-primary">Admin</a>
+                                                    <a href="#" class="btn btn-sm btn-outline-success">View</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>blog.example.com</strong></td>
+                                                <td>/var/www/blog.example.com</td>
+                                                <td><span class="badge badge-aapanel badge-wp-version">6.3.1</span></td>
+                                                <td><span class="badge badge-aapanel badge-status-active">Active</span></td>
+                                                <td>
+                                                    <a href="#" class="btn btn-sm btn-outline-primary">Admin</a>
+                                                    <a href="#" class="btn btn-sm btn-outline-success">View</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>shop.example.com</strong></td>
+                                                <td>/var/www/shop.example.com</td>
+                                                <td><span class="badge badge-aapanel badge-wp-version">6.4.2</span></td>
+                                                <td><span class="badge badge-aapanel badge-status-inactive">Maintenance</span></td>
+                                                <td>
+                                                    <a href="#" class="btn btn-sm btn-outline-primary">Admin</a>
+                                                    <a href="#" class="btn btn-sm btn-outline-success">View</a>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Demo functions
+        function showVPSDetails(vpsIp) {
+            // Remove active class from all VPS cards
+            document.querySelectorAll('.vps-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to clicked card
+            event.currentTarget.classList.add('active');
+            
+            // Update selected VPS info
+            document.querySelector('#selectedVPSInfo').textContent = `VPS: ${vpsIp}`;
+        }
+        
+        // Scan button animation
+        document.getElementById('scanAllBtn').addEventListener('click', function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang quét...';
+            btn.disabled = true;
+            
+            // Demo delay
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                // Show alert
+                alert('✅ Demo: Quét VPS hoàn thành!');
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

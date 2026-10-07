@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>✅ Test GET Parameters cho Search Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .test-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #007bff; }
+        .url-example { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; margin: 10px 0; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>✅ Search Form với GET Parameters</h1>
+        
+        <div class="test-panel">
+            <h3>🎯 Tính năng mới: Form tự động fill từ URL</h3>
+            <div class="alert alert-success">
+                <h5><strong>Đã hoàn thành:</strong> Search form giờ tự động lấy giá trị từ URL parameters!</h5>
+                <ul>
+                    <li>✅ <strong>Search Input:</strong> Lấy từ <code>?q=value</code></li>
+                    <li>✅ <strong>Status Filter:</strong> Lấy từ <code>?status=active</code></li>
+                    <li>✅ <strong>Per Page:</strong> Lấy từ <code>?per_page=50</code></li>
+                    <li>✅ <strong>Use Cache:</strong> Lấy từ <code>?use_cache=on</code></li>
+                    <li>✅ <strong>Bulk Mode:</strong> Lấy từ <code>?bulk=on</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>🔗 Test URLs - Click để thử</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Basic Tests:</h5>
+                    <div class="d-grid gap-2 mb-3">
+                        <a href="index.php?action=search" class="btn btn-outline-primary" target="_blank">
+                            🌐 Trang search thường
+                        </a>
+                        <small class="text-muted">Default values, không có parameters</small>
+                        
+                        <a href="index.php?action=search&q=test" class="btn btn-outline-success" target="_blank">
+                            🔍 Search "test"
+                        </a>
+                        <small class="text-muted">Ô search sẽ có sẵn "test"</small>
+                        
+                        <a href="index.php?action=search&q=example&status=active" class="btn btn-outline-info" target="_blank">
+                            🎯 Search "example" + Active status
+                        </a>
+                        <small class="text-muted">Cả search input và status filter sẽ được set</small>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5>Advanced Tests:</h5>
+                    <div class="d-grid gap-2 mb-3">
+                        <a href="index.php?action=search&q=domain&status=pending&per_page=50" class="btn btn-outline-warning" target="_blank">
+                            ⚡ Full parameter test
+                        </a>
+                        <small class="text-muted">Search + Status + Per Page</small>
+                        
+                        <a href="index.php?action=search&q=test&status=active&per_page=100&use_cache=on&bulk=on" class="btn btn-outline-danger" target="_blank">
+                            🚀 Tất cả parameters
+                        </a>
+                        <small class="text-muted">Tất cả form fields sẽ được pre-fill</small>
+                        
+                        <a href="index.php?action=search&q=" class="btn btn-outline-secondary" target="_blank">
+                            📋 Empty search
+                        </a>
+                        <small class="text-muted">Query trống (hiển thị tất cả)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>📚 URL Examples - Copy & Paste vào address bar</h3>
+            
+            <div class="mb-3">
+                <h6>🔍 Basic search:</h6>
+                <div class="url-example">
+                    http://localhost/index.php?action=search&q=example.com
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <h6>🎯 Search với filter:</h6>
+                <div class="url-example">
+                    http://localhost/index.php?action=search&q=test&status=active&per_page=50
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <h6>⚙️ Advanced options:</h6>
+                <div class="url-example">
+                    http://localhost/index.php?action=search&q=domain&status=pending&per_page=100&use_cache=on&bulk=on
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <h6>🌐 Wildcard search:</h6>
+                <div class="url-example">
+                    http://localhost/index.php?action=search&q=*.com&status=active
+                </div>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>💡 Ứng dụng thực tế</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🔗 Bookmarks:</h5>
+                    <ul>
+                        <li>Bookmark các search query thường dùng</li>
+                        <li>Share URL search với đồng nghiệp</li>
+                        <li>Tạo shortcut cho filtered views</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>🔄 Integration:</h5>
+                    <ul>
+                        <li>API có thể generate search URLs</li>
+                        <li>Email reports có thể include links</li>
+                        <li>Dashboard widgets link đến filtered views</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3>🧪 Interactive Test</h3>
+            <div class="bg-light p-3 rounded">
+                <h6>Build your own URL:</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Search Query:</label>
+                        <input type="text" id="testQ" class="form-control form-control-sm" placeholder="e.g. test">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status:</label>
+                        <select id="testStatus" class="form-select form-select-sm">
+                            <option value="">All</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Per Page:</label>
+                        <select id="testPerPage" class="form-select form-select-sm">
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary btn-sm d-block w-100" onclick="generateURL()">
+                            🚀 Generate & Open
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label">Generated URL:</label>
+                    <div id="generatedURL" class="url-example">
+                        Fill form above to generate URL...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateURL() {
+            const q = document.getElementById('testQ').value;
+            const status = document.getElementById('testStatus').value;
+            const perPage = document.getElementById('testPerPage').value;
+            
+            const params = new URLSearchParams();
+            params.set('action', 'search');
+            if (q) params.set('q', q);
+            if (status) params.set('status', status);
+            if (perPage && perPage !== '20') params.set('per_page', perPage);
+            
+            const url = `index.php?${params.toString()}`;
+            document.getElementById('generatedURL').textContent = `http://localhost/${url}`;
+            
+            // Open in new tab
+            window.open(url, '_blank');
+        }
+
+        // Example of form integration
+        function updateForm() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            const q = urlParams.get('q') || '';
+            const status = urlParams.get('status') || '';
+            const perPage = urlParams.get('per_page') || '20';
+            
+            document.getElementById('testQ').value = q;
+            document.getElementById('testStatus').value = status;
+            document.getElementById('testPerPage').value = perPage;
+            
+            if (q || status || perPage !== '20') {
+                generateURL();
+            }
+        }
+
+        // Auto-update form when page loads
+        window.onload = updateForm;
+    </script>
+</body>
+</html>

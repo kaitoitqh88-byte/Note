@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JavaScript Syntax Test</title>
+</head>
+<body>
+    <div id="test">Test</div>
+
+    <script>
+        // Test the specific problematic syntax from search.php
+        const testDomain = {
+            id: '12345',
+            name: 'test.com',
+            status: 'active',
+            plan: { name: 'Pro' },
+            created_on: '2024-01-01',
+            _relevance_score: 85,
+            _search_term: 'test'
+        };
+
+        const relevanceScore = testDomain._relevance_score || 0;
+        const searchTerm = testDomain._search_term;
+        const hasContext = searchTerm && searchTerm !== testDomain.name;
+
+        // Test the corrected template literal syntax
+        const testHTML = `
+        <tr data-domain-id="${testDomain.id}" data-relevance="${relevanceScore}">
+            <td>
+                <div class="domain-name">${testDomain.name}</div>
+                <div class="domain-id">ID: ${testDomain.id.substring(0, 12)}...</div>
+            </td>
+            <td>
+                <span class="status-badge status-${testDomain.status}">
+                    ${testDomain.status}
+                </span>
+            </td>
+            <td>
+                <span class="plan-badge">
+                    ${testDomain.plan ? testDomain.plan.name : 'Unknown'}
+                </span>
+            </td>
+            <td>
+                <small>${new Date(testDomain.created_on).toLocaleDateString()}</small>
+            </td>
+            <td>
+                <div class="relevance-indicator">
+                    ${relevanceScore > 0 ? 
+                        `<span class="relevance-score">${Math.round(relevanceScore)}%</span>
+                        ${relevanceScore >= 90 ? '<i class="fas fa-star text-warning"></i>' : 
+                          relevanceScore >= 70 ? '<i class="fas fa-star-half-alt text-warning"></i>' : 
+                          '<i class="far fa-star text-muted"></i>'}` 
+                        : '<span class="text-muted">-</span>'}
+                </div>
+                ${hasContext ? 
+                    `<div class="search-context mt-1">
+                        <small class="text-info"><i class="fas fa-search"></i> ${searchTerm}</small>
+                    </div>` 
+                    : ''}
+            </td>
+            <td class="actions-cell">
+                <button onclick="window.open('?action=dashboard&zone=${testDomain.id}', '_blank')">
+                    Dashboard
+                </button>
+            </td>
+        </tr>
+        `;
+
+        console.log('✅ JavaScript syntax test passed');
+        console.log('Generated HTML length:', testHTML.length);
+        
+        // Test the array map similar to search.php
+        const testResults = [testDomain];
+        const tableRows = testResults.map((domain, index) => {
+            const relevanceScore = domain._relevance_score || 0;
+            const searchTerm = domain._search_term;
+            const hasContext = searchTerm && searchTerm !== domain.name;
+            
+            return `
+            <tr data-domain-id="${domain.id}">
+                <td>${domain.name}</td>
+                <td>
+                    ${relevanceScore > 0 ? 
+                        `<span class="relevance-score">${Math.round(relevanceScore)}%</span>
+                        ${relevanceScore >= 90 ? '<i class="fas fa-star text-warning"></i>' : 
+                          relevanceScore >= 70 ? '<i class="fas fa-star-half-alt text-warning"></i>' : 
+                          '<i class="far fa-star text-muted"></i>'}` 
+                        : '<span class="text-muted">-</span>'}
+                </td>
+            </tr>
+            `;
+        }).join('');
+
+        console.log('✅ Array map test passed');
+        console.log('Table rows:', tableRows);
+        
+        document.getElementById('test').innerHTML = '✅ All syntax tests passed!';
+        
+    </script>
+</body>
+</html>

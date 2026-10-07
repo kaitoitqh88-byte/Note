@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test aaPanel Account Checker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .demo-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Roboto Mono', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="text-center mb-4">
+            <h1 class="text-primary">
+                <i class="fas fa-user-check"></i>
+                aaPanel Account Checker
+            </h1>
+            <p class="lead">Công cụ kiểm tra kết nối và trạng thái tài khoản aaPanel</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <h5><i class="fas fa-check-circle text-success"></i> Tính năng chính</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-angle-right text-primary"></i> Kiểm tra kết nối tự động</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Đọc tài khoản từ file aapanel.txt</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Hiển thị thống kê real-time</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Kiểm tra từng tài khoản hoặc tất cả</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Xuất kết quả CSV</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Tìm kiếm và lọc</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <h5><i class="fas fa-info-circle text-info"></i> Thông tin kỹ thuật</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-angle-right text-primary"></i> Kiểm tra HTTP/HTTPS response</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Đo response time</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Phát hiện trang aaPanel</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Kiểm tra form login</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Xử lý SSL/TLS</li>
+                        <li><i class="fas fa-angle-right text-primary"></i> Timeout protection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feature-card">
+            <h5><i class="fas fa-file-alt text-warning"></i> Định dạng file aapanel.txt</h5>
+            <p>File <code>aapanel.txt</code> chứa thông tin tài khoản với định dạng:</p>
+            <div class="code-block">
+URL_AAPANEL&nbsp;&nbsp;&nbsp;&nbsp;USERNAME&nbsp;&nbsp;&nbsp;&nbsp;PASSWORD<br>
+https://103.213.216.172:17806/31daf524&nbsp;&nbsp;&nbsp;&nbsp;admin&nbsp;&nbsp;&nbsp;&nbsp;password123<br>
+http://142.91.102.248:40034/6769e3f9&nbsp;&nbsp;&nbsp;&nbsp;user1&nbsp;&nbsp;&nbsp;&nbsp;mypassword<br>
+            </div>
+            <p class="text-muted">
+                <small>
+                    <i class="fas fa-lightbulb"></i>
+                    Mỗi dòng chứa URL aaPanel, username và password được phân cách bằng tab hoặc khoảng trắng
+                </small>
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h5><i class="fas fa-chart-line text-success"></i> Kết quả kiểm tra</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>✅ Thành công:</h6>
+                    <ul class="text-success">
+                        <li>Status code (200, 302, etc.)</li>
+                        <li>Response time (ms)</li>
+                        <li>Phát hiện trang aaPanel</li>
+                        <li>Form login có sẵn</li>
+                        <li>Kích thước response</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>❌ Thất bại:</h6>
+                    <ul class="text-danger">
+                        <li>Chi tiết lỗi kết nối</li>
+                        <li>Timeout hoặc unreachable</li>
+                        <li>SSL/certificate issues</li>
+                        <li>Server không phản hồi</li>
+                        <li>Port bị chặn</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <a href="aapanel_account_checker.php" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-rocket"></i> Mở aaPanel Account Checker
+            </a>
+            <a href="aapanel_manager.php" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-cogs"></i> aaPanel Manager
+            </a>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted">
+                <small>
+                    <i class="fas fa-shield-alt"></i>
+                    Tool này chỉ kiểm tra kết nối, không thực hiện đăng nhập thực sự vào aaPanel
+                </small>
+            </p>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

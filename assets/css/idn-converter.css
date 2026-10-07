@@ -1,0 +1,47 @@
+/* IDN Converter Styles - Cloudflare Management System */
+
+.converter-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.converter-card:hover {
+    transform: translateY(-2px);
+}
+
+.copy-btn {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.8em;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.result-item {
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    transition: background-color 0.2s ease;
+}
+
+.result-item:hover {
+    background: #e9ecef;
+}
+
+.custom-radio {
+    margin-right: 15px;
+}
+
+.results-summary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 10px;
+}

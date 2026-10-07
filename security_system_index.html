@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Security Rules Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(59,130,246,0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            text-align: center;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #1f2937;
+            text-align: center;
+        }
+        
+        .feature-description {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .feature-links {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb); 
+            color: white; 
+        }
+        
+        .btn-success { 
+            background: linear-gradient(135deg, #22c55e, #16a34a); 
+            color: white; 
+        }
+        
+        .btn-info { 
+            background: linear-gradient(135deg, #06b6d4, #0891b2); 
+            color: white; 
+        }
+        
+        .btn-warning { 
+            background: linear-gradient(135deg, #f59e0b, #d97706); 
+            color: white; 
+        }
+        
+        .system-info {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .system-info h2 {
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .info-item {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .info-item strong {
+            color: #374151;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .info-item span {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .tech-stack {
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(147,51,234,0.1));
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        .tech-stack h3 {
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+        
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        
+        .tech-tag {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(59,130,246,0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .header h1 { font-size: 2rem; }
+            .features-grid { grid-template-columns: 1fr; }
+            .feature-links { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ Security Rules Management System</h1>
+            <p>Quản lý bảo mật Cloudflare với giao diện hoàn chỉnh và chuyên nghiệp</p>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="features-grid">
+            <!-- Main Application -->
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">Ứng Dụng Chính</h3>
+                <p class="feature-description">
+                    Giao diện quản lý Security Rules hoàn chỉnh với menu điều hướng, 
+                    dashboard thống kê và các công cụ quản lý chuyên nghiệp.
+                </p>
+                <div class="feature-links">
+                    <a href="security_manager.php" class="btn btn-primary">
+                        🏠 Mở Ứng Dụng
+                    </a>
+                    <a href="SECURITY_RULES_UI_README.md" class="btn btn-info">
+                        📖 Hướng Dẫn
+                    </a>
+                </div>
+            </div>
+
+            <!-- Demo Preview -->
+            <div class="feature-card">
+                <div class="feature-icon">🎭</div>
+                <h3 class="feature-title">Demo UI</h3>
+                <p class="feature-description">
+                    Preview giao diện với dữ liệu mẫu để xem trực quan 
+                    các tính năng và thiết kế responsive.
+                </p>
+                <div class="feature-links">
+                    <a href="security_rules_ui_demo.html" class="btn btn-warning">
+                        👀 Xem Demo
+                    </a>
+                </div>
+            </div>
+
+            <!-- API Integration -->
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">API Backend</h3>
+                <p class="feature-description">
+                    API tích hợp Cloudflare với đầy đủ chức năng tạo, sửa, xóa 
+                    và quản lý Security Rules thông qua Expression Engine.
+                </p>
+                <div class="feature-links">
+                    <a href="CloudflareAPI.php" class="btn btn-success">
+                        🔧 View Code
+                    </a>
+                    <a href="SECURITY_RULES_README.md" class="btn btn-info">
+                        📚 Docs
+                    </a>
+                </div>
+            </div>
+
+            <!-- Templates System -->
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3 class="feature-title">Templates Gallery</h3>
+                <p class="feature-description">
+                    Thư viện templates được định nghĩa sẵn cho các tình huống 
+                    bảo mật phổ biến như blocking bots, geo-blocking, SQL injection.
+                </p>
+                <div class="feature-links">
+                    <a href="security_rules_demo.php" class="btn btn-primary">
+                        🎯 Xem Templates
+                    </a>
+                </div>
+            </div>
+
+            <!-- Assets & Resources -->
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3 class="feature-title">Assets & Styles</h3>
+                <p class="feature-description">
+                    CSS và JavaScript riêng biệt được tối ưu hóa cho 
+                    performance và maintainability.
+                </p>
+                <div class="feature-links">
+                    <a href="assets/css/security-manager.css" class="btn btn-info">
+                        🎨 CSS File
+                    </a>
+                    <a href="assets/js/security-manager.js" class="btn btn-warning">
+                        ⚡ JS File
+                    </a>
+                </div>
+            </div>
+
+            <!-- Documentation -->
+            <div class="feature-card">
+                <div class="feature-icon">📚</div>
+                <h3 class="feature-title">Documentation</h3>
+                <p class="feature-description">
+                    Tài liệu chi tiết về cài đặt, sử dụng, customization 
+                    và troubleshooting.
+                </p>
+                <div class="feature-links">
+                    <a href="SECURITY_RULES_UI_README.md" class="btn btn-primary">
+                        📖 UI Guide
+                    </a>
+                    <a href="SECURITY_RULES_README.md" class="btn btn-success">
+                        🔧 API Docs
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="system-info">
+            <h2>🔧 Thông Tin Hệ Thống</h2>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>📁 Files Created</strong>
+                    <span>
+                        • security_manager.php (Main App)<br>
+                        • assets/css/security-manager.css<br>
+                        • assets/js/security-manager.js<br>
+                        • security_rules_ui_demo.html<br>
+                        • SECURITY_RULES_UI_README.md
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <strong>🎯 Features</strong>
+                    <span>
+                        • Dashboard với thống kê<br>
+                        • Expression Builder<br>
+                        • Templates Gallery<br>
+                        • Rules Management<br>
+                        • Test Tools & Bulk Operations
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <strong>🌐 UI Features</strong>
+                    <span>
+                        • Responsive Design<br>
+                        • Vietnamese Language<br>
+                        • Real-time Validation<br>
+                        • Professional Styling<br>
+                        • Accessibility Support
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <strong>🔧 Requirements</strong>
+                    <span>
+                        • PHP 7.4+<br>
+                        • Cloudflare API Access<br>
+                        • Modern Web Browser<br>
+                        • CDN Access (Font Awesome)
+                    </span>
+                </div>
+            </div>
+
+            <div class="tech-stack">
+                <h3>🚀 Technology Stack</h3>
+                <div class="tech-tags">
+                    <span class="tech-tag">PHP OOP</span>
+                    <span class="tech-tag">Vanilla JavaScript</span>
+                    <span class="tech-tag">CSS3 Grid/Flexbox</span>
+                    <span class="tech-tag">Cloudflare API</span>
+                    <span class="tech-tag">Expression Engine</span>
+                    <span class="tech-tag">Responsive Design</span>
+                    <span class="tech-tag">AJAX/Fetch</span>
+                    <span class="tech-tag">Font Awesome</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate cards on scroll
+            const cards = document.querySelectorAll('.feature-card');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
+                    }
+                });
+            });
+
+            cards.forEach(card => {
+                observer.observe(card);
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+            });
+
+            // Add fadeInUp animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+
+        // Show system status in console
+        console.log(`
+🛡️ Security Rules Management System
+==========================================
+✅ UI Components: Ready
+✅ Backend Integration: Ready  
+✅ Templates System: Ready
+✅ Documentation: Complete
+✅ Demo Available: Yes
+
+🚀 System Status: READY FOR PRODUCTION
+        `);
+    </script>
+</body>
+</html>

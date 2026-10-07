@@ -1,0 +1,121 @@
+/* 
+ * Navigation Menu Styles for CF Manager
+ * Shared navigation component styles for consistent UI across pages
+ */
+
+/* Main Navigation Bar */
+.navbar-main {
+    background: rgba(26, 32, 44, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1030;
+}
+
+/* Brand Logo */
+.navbar-main .navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #fff !important;
+    text-decoration: none;
+}
+
+.navbar-main .navbar-brand:hover {
+    color: #4facfe !important;
+}
+
+/* Navigation Links */
+.navbar-main .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.navbar-main .nav-link:hover {
+    color: #4facfe !important;
+    transform: translateY(-1px);
+}
+
+.navbar-main .nav-link.active {
+    color: #4facfe !important;
+    font-weight: 600;
+}
+
+/* Dropdown Menus */
+.navbar-main .dropdown-menu {
+    background: rgba(26, 32, 44, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 0.5rem;
+}
+
+.navbar-main .dropdown-item {
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.navbar-main .dropdown-item:hover {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+    transform: translateX(5px);
+}
+
+.navbar-main .dropdown-item.active {
+    background: rgba(79, 172, 254, 0.3);
+    color: #4facfe;
+    font-weight: 600;
+}
+
+.navbar-main .dropdown-item i {
+    margin-right: 0.75rem;
+    width: 16px;
+    text-align: center;
+}
+
+/* Page Layout Adjustments */
+.header {
+    margin-top: 0;
+    padding-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .navbar-main .navbar-brand {
+        font-size: 1.3rem;
+    }
+    
+    .navbar-main .nav-link {
+        padding: 0.5rem 1rem;
+    }
+    
+    .navbar-main .dropdown-menu {
+        border-radius: 8px;
+        padding: 0.25rem;
+    }
+    
+    .navbar-main .dropdown-item {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .header {
+        padding-top: 1.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar-main .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .navbar-main .navbar-brand i {
+        margin-right: 0.5rem;
+    }
+}

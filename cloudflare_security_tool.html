@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Cloudflare Security Rules Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .tool-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .tool-header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .tool-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .tool-header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .config-panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        .config-panel h3 {
+            color: #374151;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb); 
+            color: white; 
+        }
+
+        .btn-success { 
+            background: linear-gradient(135deg, #22c55e, #16a34a); 
+            color: white; 
+        }
+
+        .btn-warning { 
+            background: linear-gradient(135deg, #f59e0b, #d97706); 
+            color: white; 
+        }
+
+        .btn-danger { 
+            background: linear-gradient(135deg, #ef4444, #dc2626); 
+            color: white; 
+        }
+
+        .tool-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+        }
+
+        .tool-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .tool-section:hover {
+            transform: translateY(-5px);
+        }
+
+        .section-title {
+            color: #374151;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #dcfce7, #d1fae5);
+            border-color: #22c55e;
+            color: #166534;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .results-container {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #e5e7eb;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .rule-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .rule-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .rule-title {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .rule-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-enabled {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-disabled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .rule-expression {
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34,197,94,0.4);
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239,68,68,0.4);
+        }
+
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .template-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .template-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59,130,246,0.15);
+            transform: translateY(-2px);
+        }
+
+        .template-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            background: #3b82f6;
+            color: white;
+            font-size: 11px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .template-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .template-description {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .template-expression {
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #475569;
+        }
+
+        @media (max-width: 768px) {
+            .tool-sections {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tool-header h1 {
+                font-size: 2em;
+            }
+            
+            .templates-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-container">
+        <!-- Header -->
+        <div class="tool-header">
+            <h1><i class="fas fa-shield-alt"></i> Cloudflare Security Rules Tool</h1>
+            <p>Công cụ web quản lý Security Rules cho Cloudflare - Standalone Tool</p>
+        </div>
+
+        <!-- Configuration Panel -->
+        <div class="config-panel">
+            <h3><i class="fas fa-cog"></i> Cấu Hình API</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Email Cloudflare:</label>
+                    <input type="email" id="cfEmail" class="form-control" placeholder="your-email@domain.com">
+                </div>
+                <div class="form-group">
+                    <label>API Key:</label>
+                    <input type="password" id="cfApiKey" class="form-control" placeholder="Global API Key">
+                </div>
+                <div class="form-group">
+                    <label>Zone ID:</label>
+                    <input type="text" id="cfZoneId" class="form-control" placeholder="Zone ID">
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái kết nối:</label>
+                    <div style="display: flex; align-items: center; margin-top: 8px;">
+                        <span id="connectionStatus" class="status-indicator status-disconnected"></span>
+                        <span id="connectionText">Chưa kết nối</span>
+                        <button id="testConnection" class="btn btn-primary btn-sm" style="margin-left: auto;">
+                            <i class="fas fa-plug"></i> Test Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Tool Sections -->
+        <div class="tool-sections">
+            <!-- Create Rule -->
+            <div class="tool-section">
+                <div class="section-title">
+                    <i class="fas fa-plus"></i> Tạo Security Rule
+                </div>
+                
+                <div class="form-group">
+                    <label>Mô tả Rule:</label>
+                    <input type="text" id="ruleDescription" class="form-control" placeholder="VD: Block SQL injection attacks">
+                </div>
+                
+                <div class="form-group">
+                    <label>Expression:</label>
+                    <textarea id="ruleExpression" class="form-control" rows="4" 
+                             placeholder='(http.user_agent contains "bot" and not http.user_agent contains "Googlebot")'></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Action:</label>
+                    <select id="ruleAction" class="form-control">
+                        <option value="block">Block - Chặn hoàn toàn</option>
+                        <option value="challenge">Challenge - Yêu cầu xác thực</option>
+                        <option value="js_challenge">JS Challenge - JavaScript</option>
+                        <option value="allow">Allow - Cho phép</option>
+                        <option value="log">Log - Chỉ ghi log</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Priority (1-1000):</label>
+                    <input type="number" id="rulePriority" class="form-control" value="5" min="1" max="1000">
+                </div>
+                
+                <button id="createRule" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Tạo Rule
+                </button>
+                
+                <button id="validateExpression" class="btn btn-warning">
+                    <i class="fas fa-check"></i> Validate Expression
+                </button>
+            </div>
+
+            <!-- Templates -->
+            <div class="tool-section">
+                <div class="section-title">
+                    <i class="fas fa-layer-group"></i> Security Templates
+                </div>
+                
+                <div class="templates-grid">
+                    <div class="template-card" data-template="block-bots">
+                        <div class="template-badge">BLOCK</div>
+                        <div class="template-title">Block Bad Bots</div>
+                        <div class="template-description">Chặn bot độc hại, giữ search engine bots</div>
+                        <div class="template-expression">(http.user_agent contains "bot" and not http.user_agent contains "Googlebot")</div>
+                    </div>
+                    
+                    <div class="template-card" data-template="geo-block">
+                        <div class="template-badge">BLOCK</div>
+                        <div class="template-title">Geographic Blocking</div>
+                        <div class="template-description">Chặn truy cập từ quốc gia không mong muốn</div>
+                        <div class="template-expression">(ip.geoip.country ne "VN")</div>
+                    </div>
+                    
+                    <div class="template-card" data-template="sql-injection">
+                        <div class="template-badge">BLOCK</div>
+                        <div class="template-title">SQL Injection Protection</div>
+                        <div class="template-description">Chặn SQL injection attacks</div>
+                        <div class="template-expression">(http.request.uri.query contains "union select")</div>
+                    </div>
+                    
+                    <div class="template-card" data-template="rate-limit">
+                        <div class="template-badge">CHALLENGE</div>
+                        <div class="template-title">Rate Limiting</div>
+                        <div class="template-description">Giới hạn requests từ same IP</div>
+                        <div class="template-expression">(rate(ip.src) > 100)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules List -->
+            <div class="tool-section" style="grid-column: 1 / -1;">
+                <div class="section-title">
+                    <i class="fas fa-list"></i> Danh Sách Security Rules
+                    <button id="refreshRules" class="btn btn-primary btn-sm" style="margin-left: auto;">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                
+                <div class="loading" id="rulesLoading">
+                    <div class="spinner"></div>
+                    <p>Đang tải danh sách rules...</p>
+                </div>
+                
+                <div id="rulesContainer" class="results-container" style="max-height: 500px;">
+                    <p style="text-align: center; color: #6b7280; padding: 40px;">
+                        <i class="fas fa-info-circle"></i> 
+                        Cấu hình API và click Refresh để xem rules
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CloudflareSecurityTool {
+            constructor() {
+                this.apiBase = 'https://api.cloudflare.com/client/v4';
+                this.config = {
+                    email: '',
+                    apiKey: '',
+                    zoneId: ''
+                };
+                this.templates = {
+                    'block-bots': {
+                        description: 'Block Bad Bots',
+                        expression: '(http.user_agent contains "bot" and not http.user_agent contains "Googlebot" and not http.user_agent contains "Bingbot")',
+                        action: 'block'
+                    },
+                    'geo-block': {
+                        description: 'Geographic Blocking',
+                        expression: '(ip.geoip.country ne "VN")',
+                        action: 'block'
+                    },
+                    'sql-injection': {
+                        description: 'SQL Injection Protection',
+                        expression: '(http.request.uri.query contains "union select" or http.request.uri.query contains "script" or http.request.uri.query contains "\'" or http.request.uri.query contains "\\"" or http.request.uri.query contains "1=1")',
+                        action: 'block'
+                    },
+                    'rate-limit': {
+                        description: 'Rate Limiting',
+                        expression: '(rate(ip.src) > 100)',
+                        action: 'challenge'
+                    }
+                };
+                this.init();
+            }
+
+            init() {
+                this.loadConfig();
+                this.bindEvents();
+                this.loadRules();
+            }
+
+            loadConfig() {
+                // Load from localStorage
+                const saved = localStorage.getItem('cloudflare_config');
+                if (saved) {
+                    this.config = JSON.parse(saved);
+                    document.getElementById('cfEmail').value = this.config.email;
+                    document.getElementById('cfApiKey').value = this.config.apiKey;
+                    document.getElementById('cfZoneId').value = this.config.zoneId;
+                }
+            }
+
+            saveConfig() {
+                this.config = {
+                    email: document.getElementById('cfEmail').value.trim(),
+                    apiKey: document.getElementById('cfApiKey').value.trim(),
+                    zoneId: document.getElementById('cfZoneId').value.trim()
+                };
+                localStorage.setItem('cloudflare_config', JSON.stringify(this.config));
+            }
+
+            bindEvents() {
+                // Test connection
+                document.getElementById('testConnection').addEventListener('click', () => {
+                    this.testConnection();
+                });
+
+                // Create rule
+                document.getElementById('createRule').addEventListener('click', () => {
+                    this.createRule();
+                });
+
+                // Validate expression
+                document.getElementById('validateExpression').addEventListener('click', () => {
+                    this.validateExpression();
+                });
+
+                // Refresh rules
+                document.getElementById('refreshRules').addEventListener('click', () => {
+                    this.loadRules();
+                });
+
+                // Template selection
+                document.querySelectorAll('.template-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        const template = this.templates[card.dataset.template];
+                        if (template) {
+                            document.getElementById('ruleDescription').value = template.description;
+                            document.getElementById('ruleExpression').value = template.expression;
+                            document.getElementById('ruleAction').value = template.action;
+                            this.showAlert('Template đã được áp dụng: ' + template.description, 'success');
+                        }
+                    });
+                });
+
+                // Auto-save config on change
+                ['cfEmail', 'cfApiKey', 'cfZoneId'].forEach(id => {
+                    document.getElementById(id).addEventListener('blur', () => {
+                        this.saveConfig();
+                    });
+                });
+            }
+
+            async makeRequest(endpoint, method = 'GET', body = null) {
+                if (!this.config.email || !this.config.apiKey) {
+                    throw new Error('Chưa cấu hình email hoặc API key');
+                }
+
+                const headers = {
+                    'X-Auth-Email': this.config.email,
+                    'X-Auth-Key': this.config.apiKey,
+                    'Content-Type': 'application/json'
+                };
+
+                const response = await fetch(`${this.apiBase}${endpoint}`, {
+                    method,
+                    headers,
+                    body: body ? JSON.stringify(body) : null
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.errors?.[0]?.message || `HTTP ${response.status}`);
+                }
+
+                return await response.json();
+            }
+
+            async testConnection() {
+                try {
+                    this.saveConfig();
+                    this.showLoading('testConnection', true);
+                    
+                    const response = await this.makeRequest('/zones');
+                    
+                    if (response.success) {
+                        document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                        document.getElementById('connectionText').textContent = 'Kết nối thành công';
+                        this.showAlert('Kết nối Cloudflare API thành công!', 'success');
+                    }
+                } catch (error) {
+                    document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                    document.getElementById('connectionText').textContent = 'Kết nối thất bại';
+                    this.showAlert('Lỗi kết nối: ' + error.message, 'error');
+                } finally {
+                    this.showLoading('testConnection', false);
+                }
+            }
+
+            async createRule() {
+                try {
+                    const description = document.getElementById('ruleDescription').value.trim();
+                    const expression = document.getElementById('ruleExpression').value.trim();
+                    const action = document.getElementById('ruleAction').value;
+                    const priority = parseInt(document.getElementById('rulePriority').value);
+
+                    if (!description || !expression) {
+                        this.showAlert('Vui lòng nhập đầy đủ mô tả và expression', 'warning');
+                        return;
+                    }
+
+                    if (!this.config.zoneId) {
+                        this.showAlert('Vui lòng nhập Zone ID', 'warning');
+                        return;
+                    }
+
+                    this.showLoading('createRule', true);
+
+                    const ruleData = {
+                        action: action,
+                        expression: expression,
+                        description: description,
+                        enabled: true,
+                        priority: priority
+                    };
+
+                    const response = await this.makeRequest(
+                        `/zones/${this.config.zoneId}/firewall/rules`,
+                        'POST',
+                        [ruleData]
+                    );
+
+                    if (response.success) {
+                        this.showAlert('Tạo rule thành công!', 'success');
+                        this.clearForm();
+                        this.loadRules();
+                    }
+                } catch (error) {
+                    this.showAlert('Lỗi tạo rule: ' + error.message, 'error');
+                } finally {
+                    this.showLoading('createRule', false);
+                }
+            }
+
+            async validateExpression() {
+                try {
+                    const expression = document.getElementById('ruleExpression').value.trim();
+                    
+                    if (!expression) {
+                        this.showAlert('Vui lòng nhập expression cần validate', 'warning');
+                        return;
+                    }
+
+                    this.showLoading('validateExpression', true);
+
+                    // Basic validation
+                    if (expression.length < 10) {
+                        this.showAlert('Expression quá ngắn', 'warning');
+                        return;
+                    }
+
+                    // Check basic syntax
+                    const hasParentheses = expression.includes('(') && expression.includes(')');
+                    const hasValidOperators = /\b(and|or|not|contains|eq|ne|in|matches)\b/.test(expression);
+                    
+                    if (hasParentheses && hasValidOperators) {
+                        this.showAlert('Expression hợp lệ về mặt cú pháp', 'success');
+                    } else {
+                        this.showAlert('Expression có thể không hợp lệ - vui lòng kiểm tra cú pháp', 'warning');
+                    }
+                } catch (error) {
+                    this.showAlert('Lỗi validate: ' + error.message, 'error');
+                } finally {
+                    this.showLoading('validateExpression', false);
+                }
+            }
+
+            async loadRules() {
+                try {
+                    if (!this.config.zoneId) {
+                        return;
+                    }
+
+                    this.showLoading('rulesLoading', true);
+                    document.getElementById('rulesContainer').innerHTML = '';
+
+                    const response = await this.makeRequest(`/zones/${this.config.zoneId}/firewall/rules`);
+                    
+                    if (response.success && response.result) {
+                        this.renderRules(response.result);
+                    }
+                } catch (error) {
+                    this.showAlert('Lỗi tải rules: ' + error.message, 'error');
+                    document.getElementById('rulesContainer').innerHTML = `
+                        <p style="text-align: center; color: #ef4444; padding: 40px;">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            Không thể tải rules: ${error.message}
+                        </p>
+                    `;
+                } finally {
+                    this.showLoading('rulesLoading', false);
+                }
+            }
+
+            renderRules(rules) {
+                const container = document.getElementById('rulesContainer');
+                
+                if (rules.length === 0) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: #6b7280; padding: 40px;">
+                            <i class="fas fa-info-circle"></i> 
+                            Chưa có rules nào
+                        </p>
+                    `;
+                    return;
+                }
+
+                const rulesHTML = rules.map(rule => `
+                    <div class="rule-item">
+                        <div class="rule-header">
+                            <div class="rule-title">${rule.description || 'Unnamed Rule'}</div>
+                            <div class="rule-status ${rule.paused ? 'status-disabled' : 'status-enabled'}">
+                                ${rule.paused ? 'Disabled' : 'Enabled'}
+                            </div>
+                        </div>
+                        <div class="rule-expression">${rule.filter?.expression || 'N/A'}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <div>
+                                <strong>Action:</strong> ${rule.action || 'Unknown'}
+                                <span style="margin-left: 15px;"><strong>Priority:</strong> ${rule.priority || 'N/A'}</span>
+                            </div>
+                            <div class="rule-actions">
+                                <button class="btn btn-warning btn-sm" onclick="tool.toggleRule('${rule.id}', ${!rule.paused})">
+                                    <i class="fas fa-power-off"></i> ${rule.paused ? 'Enable' : 'Disable'}
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="tool.deleteRule('${rule.id}')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = rulesHTML;
+            }
+
+            async toggleRule(ruleId, paused) {
+                try {
+                    const response = await this.makeRequest(
+                        `/zones/${this.config.zoneId}/firewall/rules/${ruleId}`,
+                        'PATCH',
+                        { paused: paused }
+                    );
+
+                    if (response.success) {
+                        this.showAlert(paused ? 'Rule đã được tắt' : 'Rule đã được bật', 'success');
+                        this.loadRules();
+                    }
+                } catch (error) {
+                    this.showAlert('Lỗi toggle rule: ' + error.message, 'error');
+                }
+            }
+
+            async deleteRule(ruleId) {
+                if (!confirm('Bạn có chắc chắn muốn xóa rule này?')) {
+                    return;
+                }
+
+                try {
+                    const response = await this.makeRequest(
+                        `/zones/${this.config.zoneId}/firewall/rules/${ruleId}`,
+                        'DELETE'
+                    );
+
+                    if (response.success) {
+                        this.showAlert('Rule đã được xóa', 'success');
+                        this.loadRules();
+                    }
+                } catch (error) {
+                    this.showAlert('Lỗi xóa rule: ' + error.message, 'error');
+                }
+            }
+
+            clearForm() {
+                document.getElementById('ruleDescription').value = '';
+                document.getElementById('ruleExpression').value = '';
+                document.getElementById('ruleAction').value = 'block';
+                document.getElementById('rulePriority').value = '5';
+            }
+
+            showAlert(message, type) {
+                const alertContainer = document.getElementById('alertContainer');
+                const alertId = 'alert_' + Date.now();
+                
+                const alertHTML = `
+                    <div id="${alertId}" class="alert alert-${type}">
+                        <i class="fas fa-${this.getAlertIcon(type)}"></i>
+                        ${message}
+                    </div>
+                `;
+                
+                alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+                
+                setTimeout(() => {
+                    const alert = document.getElementById(alertId);
+                    if (alert) {
+                        alert.style.animation = 'fadeOut 0.3s ease';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 5000);
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    warning: 'exclamation-circle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+
+            showLoading(elementId, show) {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+
+                if (show) {
+                    element.disabled = true;
+                    const originalText = element.innerHTML;
+                    element.dataset.originalText = originalText;
+                    element.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                } else {
+                    element.disabled = false;
+                    if (element.dataset.originalText) {
+                        element.innerHTML = element.dataset.originalText;
+                    }
+                }
+            }
+        }
+
+        // Initialize tool
+        const tool = new CloudflareSecurityTool();
+
+        // Add fadeOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        console.log('🛡️ Cloudflare Security Rules Tool loaded successfully');
+    </script>
+</body>
+</html>

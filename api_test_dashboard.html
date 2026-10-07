@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Cloudflare API Calls</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .btn { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 3px; font-family: monospace; }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .loading { border-left: 4px solid #ffc107; }
+        pre { max-height: 400px; overflow: auto; }
+        input[type="text"] { padding: 8px; margin: 5px; width: 300px; border: 1px solid #ddd; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Cloudflare API Testing Dashboard</h1>
+        
+        <!-- Basic connectivity test -->
+        <div class="test-section">
+            <h3>📡 Test 1: API Connectivity</h3>
+            <p>Test basic connection to the API</p>
+            <button class="btn" onclick="testConnectivity()">Test Connection</button>
+            <div id="connectivity-result" class="result">Click button to test...</div>
+        </div>
+        
+        <!-- Search API test -->
+        <div class="test-section">
+            <h3>🔍 Test 2: Search API</h3>
+            <p>Test the search functionality that was having issues</p>
+            <button class="btn" onclick="testSearchEmpty()">Test Empty Search</button>
+            <button class="btn" onclick="testSearchBulk()">Test Bulk Search</button>
+            <div id="search-result" class="result">Click button to test...</div>
+        </div>
+        
+        <!-- Custom search test -->
+        <div class="test-section">
+            <h3>🎯 Test 3: Custom Search</h3>
+            <p>Test search with specific query</p>
+            <input type="text" id="customQuery" placeholder="Enter domain name to search">
+            <button class="btn" onclick="testCustomSearch()">Search</button>
+            <div id="custom-result" class="result">Enter query and click search...</div>
+        </div>
+        
+        <!-- Diagnostic test -->
+        <div class="test-section">
+            <h3>🔧 Test 4: Diagnostic Check</h3>
+            <p>Run comprehensive diagnostic (requires PHP)</p>
+            <button class="btn" onclick="runDiagnostic()">Run Diagnostic</button>
+            <div id="diagnostic-result" class="result">Click button to run...</div>
+        </div>
+
+        <!-- Manual URL testing -->
+        <div class="test-section">
+            <h3>🔗 Test 5: Manual URL Testing</h3>
+            <p>Test specific URLs manually:</p>
+            <ul>
+                <li><a href="?action=search&api=1&q=&page=1&per_page=5" target="_blank">Empty Search API</a></li>
+                <li><a href="?action=search" target="_blank">Search HTML Interface</a></li>
+                <li><a href="?action=dashboard&api=1&page=1&per_page=10" target="_blank">Dashboard API</a></li>
+                <li><a href="search_diagnostic.php" target="_blank">Diagnostic Page</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const baseURL = window.location.pathname.split('/').slice(0, -1).join('/') + '/';
+        
+        function makeAPICall(url, resultElementId, description) {
+            const resultElement = document.getElementById(resultElementId);
+            resultElement.innerHTML = `<div class="loading">🔄 ${description}...</div>`;
+            
+            const startTime = Date.now();
+            
+            fetch(url)
+                .then(response => {
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    console.log(`${description} - Status: ${response.status}, Time: ${responseTime}ms`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => ({
+                            type: 'json',
+                            data: data,
+                            responseTime: responseTime,
+                            status: response.status
+                        }));
+                    } else {
+                        return response.text().then(data => ({
+                            type: 'html',
+                            data: data,
+                            responseTime: responseTime,
+                            status: response.status
+                        }));
+                    }
+                })
+                .then(result => {
+                    if (result.type === 'json') {
+                        const statusIcon = result.data.success ? '✅' : '❌';
+                        resultElement.innerHTML = 
+                            `<div class="${result.data.success ? 'success' : 'error'}">
+                                ${statusIcon} ${description} - ${result.responseTime}ms
+                                <br><strong>Success:</strong> ${result.data.success}
+                                ${result.data.error ? `<br><strong>Error:</strong> ${result.data.error}` : ''}
+                                ${result.data.data ? `<br><strong>Results:</strong> ${JSON.stringify(result.data.data.result_info || {}, null, 2)}` : ''}
+                                <details><summary>Full Response</summary><pre>${JSON.stringify(result.data, null, 2)}</pre></details>
+                            </div>`;
+                        resultElement.className = `result ${result.data.success ? 'success' : 'error'}`;
+                    } else {
+                        // HTML response
+                        resultElement.innerHTML = 
+                            `<div class="success">
+                                ✅ ${description} - ${result.responseTime}ms - HTML Response
+                                <br><strong>Content Length:</strong> ${result.data.length} chars
+                                <details><summary>Content Preview</summary><pre>${result.data.substring(0, 500)}${result.data.length > 500 ? '...' : ''}</pre></details>
+                            </div>`;
+                        resultElement.className = 'result success';
+                    }
+                })
+                .catch(error => {
+                    console.error(`${description} Error:`, error);
+                    resultElement.innerHTML = 
+                        `<div class="error">❌ ${description} Failed<br><strong>Error:</strong> ${error.message}</div>`;
+                    resultElement.className = 'result error';
+                });
+        }
+        
+        function testConnectivity() {
+            makeAPICall('?action=dashboard&api=1&page=1&per_page=5', 'connectivity-result', 'API Connectivity Test');
+        }
+        
+        function testSearchEmpty() {
+            makeAPICall('?action=search&api=1&q=&page=1&per_page=5', 'search-result', 'Empty Search Test');
+        }
+        
+        function testSearchBulk() {
+            makeAPICall('?action=search&api=1&q=example.com,test.com&bulk=1&page=1&per_page=10', 'search-result', 'Bulk Search Test');
+        }
+        
+        function testCustomSearch() {
+            const query = document.getElementById('customQuery').value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+            makeAPICall(`?action=search&api=1&q=${encodeURIComponent(query)}&page=1&per_page=10`, 'custom-result', `Custom Search: "${query}"`);
+        }
+        
+        function runDiagnostic() {
+            makeAPICall('search_diagnostic.php', 'diagnostic-result', 'Diagnostic Check');
+        }
+        
+        // Auto-run connectivity test on page load
+        window.onload = function() {
+            console.log('🚀 API Testing Dashboard loaded');
+            console.log('Base URL:', baseURL);
+            testConnectivity();
+        };
+        
+        // Add Enter key support for custom search
+        document.getElementById('customQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testCustomSearch();
+            }
+        });
+    </script>
+</body>
+</html>

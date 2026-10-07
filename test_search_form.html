@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Search Form</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; margin: 20px; }
+        .test-section { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .debug { background: #e3f2fd; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 4px; 
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #545b62; }
+        input, select { 
+            width: 100%; 
+            padding: 8px; 
+            margin: 5px 0; 
+            border: 1px solid #ccc; 
+            border-radius: 4px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Search Form Test Page</h1>
+    <p>Trang này để test tính năng tìm kiếm domain.</p>
+
+    <div class="test-section">
+        <h3>Debug Information</h3>
+        <div id="debugInfo" class="debug">
+            <strong>Status:</strong> Initializing...<br>
+            <strong>JavaScript:</strong> <span id="jsStatus">Loading...</span><br>
+            <strong>Required Elements:</strong> <span id="elementsStatus">Checking...</span>
+        </div>
+        <button onclick="runDebugTest()">🐛 Run Debug Test</button>
+        <button onclick="clearDebug()" class="btn-secondary">🗑️ Clear Debug</button>
+    </div>
+
+    <div class="test-section">
+        <h3>Mock Search Form</h3>
+        <form id="searchForm">
+            <input type="text" id="searchInput" placeholder="Nhập tên domain..." value="">
+            
+            <select id="statusFilter">
+                <option value="">Tất cả trạng thái</option>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+            </select>
+            
+            <button type="submit">🔍 Search</button>
+            <button type="button" onclick="simulateSearch()">⚡ Simulate Search</button>
+        </form>
+        
+        <div id="searchResults" class="hidden">
+            <h4>Search Results:</h4>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Actions</h3>
+        <button onclick="testFormSubmission()">📝 Test Form Submission</button>
+        <button onclick="testEventListeners()">🎧 Test Event Listeners</button>
+        <button onclick="testAPI()">🌐 Test API Connection</button>
+        <button onclick="loadSearchPage()" class="btn-secondary">📄 Load Real Search Page</button>
+    </div>
+
+    <div class="test-section">
+        <h3>Console Log</h3>
+        <div id="console" style="background: #000; color: #0f0; padding: 15px; border-radius: 4px; height: 200px; overflow-y: auto; font-family: monospace;"></div>
+    </div>
+
+    <script>
+        // Mock DomainSearch class for testing
+        class DomainSearch {
+            constructor() {
+                this.log('DomainSearch initializing...');
+                this.initializeEvents();
+                this.log('DomainSearch initialized successfully!');
+            }
+
+            initializeEvents() {
+                this.log('Setting up event listeners...');
+                
+                const form = document.getElementById('searchForm');
+                if (form) {
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.log('Form submitted!');
+                        this.performSearch();
+                    });
+                    this.log('Form event listener added ✓');
+                } else {
+                    this.log('❌ Form not found!', 'error');
+                }
+
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        this.log(`Input changed: "${e.target.value}"`);
+                    });
+                    this.log('Search input event listener added ✓');
+                }
+            }
+
+            performSearch() {
+                const query = document.getElementById('searchInput').value;
+                const status = document.getElementById('statusFilter').value;
+                
+                this.log(`🔍 Performing search: query="${query}", status="${status}"`);
+                
+                // Simulate search
+                const results = document.getElementById('searchResults');
+                const content = document.getElementById('resultsContent');
+                
+                if (results && content) {
+                    content.innerHTML = `
+                        <div class="success">
+                            ✅ Search completed!<br>
+                            Query: "${query || 'All domains'}"<br>
+                            Status: "${status || 'All statuses'}"<br>
+                            Found: ${Math.floor(Math.random() * 20) + 1} domains
+                        </div>
+                    `;
+                    results.classList.remove('hidden');
+                    this.log('Search results displayed ✓');
+                } else {
+                    this.log('❌ Results container not found!', 'error');
+                }
+            }
+
+            testJavaScript() {
+                this.log('🧪 JavaScript test running...');
+                const elements = ['searchInput', 'statusFilter', 'searchForm'];
+                let allFound = true;
+                
+                elements.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        this.log(`✅ Element ${id}: Found`);
+                    } else {
+                        this.log(`❌ Element ${id}: NOT FOUND`, 'error');
+                        allFound = false;
+                    }
+                });
+                
+                if (allFound) {
+                    this.log('🎉 All elements found! JavaScript is working correctly.');
+                    alert('✅ JavaScript test passed!');
+                } else {
+                    this.log('🚨 Some elements are missing!', 'error');
+                    alert('❌ JavaScript test failed - check console');
+                }
+            }
+
+            testSearch() {
+                this.log('🧪 Testing search functionality...');
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.value = 'test.com';
+                    this.performSearch();
+                } else {
+                    this.log('❌ Search input not found!', 'error');
+                    alert('❌ Search test failed!');
+                }
+            }
+
+            log(message, type = 'info') {
+                const console = document.getElementById('console');
+                const timestamp = new Date().toLocaleTimeString();
+                const color = type === 'error' ? '#f44336' : '#4caf50';
+                
+                console.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+                console.scrollTop = console.scrollHeight;
+                
+                // Also log to browser console
+                if (type === 'error') {
+                    console.error(message);
+                } else {
+                    console.log(message);
+                }
+            }
+        }
+
+        // Global test functions
+        function runDebugTest() {
+            if (window.domainSearch) {
+                window.domainSearch.testJavaScript();
+            } else {
+                document.getElementById('console').innerHTML += 
+                    `<div style="color: #f44336">[${new Date().toLocaleTimeString()}] ❌ DomainSearch not initialized!</div>`;
+            }
+        }
+
+        function clearDebug() {
+            document.getElementById('console').innerHTML = '';
+        }
+
+        function simulateSearch() {
+            if (window.domainSearch) {
+                window.domainSearch.testSearch();
+            }
+        }
+
+        function testFormSubmission() {
+            const form = document.getElementById('searchForm');
+            if (form) {
+                const event = new Event('submit', { bubbles: true, cancelable: true });
+                form.dispatchEvent(event);
+            }
+        }
+
+        function testEventListeners() {
+            const form = document.getElementById('searchForm');
+            const input = document.getElementById('searchInput');
+            
+            let results = [];
+            
+            if (form && form.onsubmit) {
+                results.push('✅ Form has submit handler');
+            } else {
+                results.push('❌ Form missing submit handler');
+            }
+            
+            if (input) {
+                input.value = 'test';
+                input.dispatchEvent(new Event('input'));
+                results.push('✅ Input event test completed');
+            }
+            
+            alert(results.join('\n'));
+        }
+
+        function testAPI() {
+            // Simulate API test
+            fetch('index.php?action=search&query=test')
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById('console').innerHTML += 
+                            `<div style="color: #4caf50">[${new Date().toLocaleTimeString()}] ✅ API connection successful</div>`;
+                    } else {
+                        throw new Error('API returned error');
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('console').innerHTML += 
+                        `<div style="color: #f44336">[${new Date().toLocaleTimeString()}] ❌ API test failed: ${error.message}</div>`;
+                });
+        }
+
+        function loadSearchPage() {
+            window.open('search.php', '_blank');
+        }
+
+        function updateStatus() {
+            document.getElementById('jsStatus').innerHTML = '<span class="success">✅ Working</span>';
+            
+            const elements = ['searchInput', 'statusFilter', 'searchForm'];
+            const found = elements.filter(id => document.getElementById(id)).length;
+            const status = found === elements.length ? 
+                `<span class="success">✅ All found (${found}/${elements.length})</span>` :
+                `<span class="error">❌ Missing (${found}/${elements.length})</span>`;
+            
+            document.getElementById('elementsStatus').innerHTML = status;
+            document.getElementById('debugInfo').innerHTML = document.getElementById('debugInfo').innerHTML.replace('Initializing...', 'Ready ✅');
+        }
+
+        // Initialize when page loads
+        let domainSearch;
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                domainSearch = new DomainSearch();
+                window.domainSearch = domainSearch; // Make globally accessible
+                updateStatus();
+            } catch (error) {
+                document.getElementById('console').innerHTML += 
+                    `<div style="color: #f44336">[${new Date().toLocaleTimeString()}] ❌ Failed to initialize: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>

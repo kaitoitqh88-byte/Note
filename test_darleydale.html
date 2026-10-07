@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test darleydale.uk.com</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .test-card { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px);
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+        }
+        .record-match { background: #d4edda; border-left: 4px solid #28a745; }
+        .record-mismatch { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .proxied { color: #f48120; }
+        .dns-only { color: #6c757d; }
+        .expected { background: #e3f2fd; padding: 10px; border-radius: 5px; }
+        .actual { background: #f3e5f5; padding: 10px; border-radius: 5px; }
+        .loading { display: none; }
+        .test-summary { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="test-card p-4">
+                    
+                    <div class="text-center mb-4">
+                        <h1><i class="fab fa-cloudflare text-warning"></i> Test: darleydale.uk.com</h1>
+                        <p class="lead">Verify DNS records matching với Cloudflare dashboard</p>
+                    </div>
+
+                    <!-- Expected Records -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-clipboard-list"></i> Expected Records (từ CF dashboard)</h5>
+                            <div class="expected">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr><th>Type</th><th>Name</th><th>Content</th><th>Proxy</th><th>TTL</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="badge bg-success">A</span></td>
+                                            <td>darleydale.uk.com</td>
+                                            <td>103.213.216.110</td>
+                                            <td><span class="proxied">🟠 Proxied</span></td>
+                                            <td>Auto</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="badge bg-info">CNAME</span></td>
+                                            <td>www</td>
+                                            <td>darleydale.uk.com</td>
+                                            <td><span class="proxied">🟠 Proxied</span></td>
+                                            <td>Auto</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-search"></i> API Test Results</h5>
+                            <div id="testResults">
+                                <div class="text-center">
+                                    <button class="btn btn-primary" onclick="runTest()">
+                                        <i class="fas fa-play"></i> Test DNS Lookup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="loading text-center py-4" id="loading">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2">Fetching DNS records from Cloudflare API...</p>
+                    </div>
+
+                    <!-- Results Area -->
+                    <div id="resultsArea" style="display: none;"></div>
+
+                    <!-- Manual Test Links -->
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="fas fa-external-link-alt"></i> Manual Test Links:</h6>
+                        <div class="btn-group" role="group">
+                            <a href="/Note/index.php?action=cloudflare-dns&domain=darleydale.uk.com&include_proxied=true" 
+                               target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-code"></i> API Call
+                            </a>
+                            <a href="/Note/demo_live.html" target="_blank" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-play"></i> Live Demo
+                            </a>
+                            <a href="/Note/demo_simple.php?demo_domain=darleydale.uk.com" 
+                               target="_blank" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-server"></i> Backend Demo
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const expectedRecords = [
+            { type: 'A', name: 'darleydale.uk.com', content: '103.213.216.110', proxied: true, ttl: 1 },
+            { type: 'CNAME', name: 'www.darleydale.uk.com', content: 'darleydale.uk.com', proxied: true, ttl: 1 }
+        ];
+
+        async function runTest() {
+            const domain = 'darleydale.uk.com';
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultsArea').innerHTML = '';
+            document.getElementById('resultsArea').style.display = 'none';
+            
+            try {
+                // Build API URL
+                const url = new URL('/Note/index.php', window.location.origin);
+                url.searchParams.set('action', 'cloudflare-dns');
+                url.searchParams.set('domain', domain);
+                url.searchParams.set('include_proxied', 'true');
+                url.searchParams.set('compare_dns', 'false'); // Disable comparison for simpler debugging
+
+                console.log('API URL:', url.toString());
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('API Response:', data);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'block';
+
+                if (data.success) {
+                    analyzeResults(data.data);
+                } else {
+                    showError(data.error, data);
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'block';
+                showError('Network error: ' + error.message);
+            }
+        }
+
+        function analyzeResults(data) {
+            const records = data.cloudflare_records;
+            const stats = data.statistics;
+            
+            let html = `
+                <div class="test-summary">
+                    <h5><i class="fas fa-check-circle text-success"></i> API Call Successful!</h5>
+                    <div class="row">
+                        <div class="col-md-3"><strong>Total Records:</strong> ${stats.total_records}</div>
+                        <div class="col-md-3"><strong>Proxied:</strong> ${stats.proxied_records}</div>
+                        <div class="col-md-3"><strong>DNS Only:</strong> ${stats.dns_only_records}</div>
+                        <div class="col-md-3"><strong>Zone ID:</strong> <small>${data.zone_id}</small></div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4"><i class="fas fa-balance-scale"></i> Record Comparison</h5>
+            `;
+
+            let matchCount = 0;
+            let mismatchCount = 0;
+
+            // Check each expected record
+            expectedRecords.forEach(expected => {
+                const actualRecords = records[expected.type] || [];
+                let found = false;
+                let actualRecord = null;
+
+                // Find matching record
+                for (let actual of actualRecords) {
+                    const nameMatch = actual.name.toLowerCase() === expected.name.toLowerCase();
+                    const contentMatch = actual.content.toLowerCase() === expected.content.toLowerCase();
+                    
+                    if (nameMatch && contentMatch) {
+                        found = true;
+                        actualRecord = actual;
+                        break;
+                    } else if (nameMatch) {
+                        actualRecord = actual; // Partial match for comparison
+                        break;
+                    }
+                }
+
+                if (found && actualRecord) {
+                    const proxyMatch = actualRecord.proxied === expected.proxied;
+                    const ttlMatch = actualRecord.ttl === expected.ttl;
+                    
+                    if (proxyMatch && (ttlMatch || actualRecord.ttl === 1)) {
+                        matchCount++;
+                        html += `
+                            <div class="record-match p-3 mb-2">
+                                <strong>✅ ${expected.type} Record MATCH</strong><br>
+                                <small>Name: ${expected.name} | Content: ${expected.content} | Proxy: ${expected.proxied ? '🟠 Proxied' : '⚫ DNS Only'}</small>
+                            </div>
+                        `;
+                    } else {
+                        mismatchCount++;
+                        html += `
+                            <div class="record-mismatch p-3 mb-2">
+                                <strong>⚠️ ${expected.type} Record PARTIAL MATCH</strong><br>
+                                <small>Expected Proxy: ${expected.proxied ? '🟠 Proxied' : '⚫ DNS Only'} | Actual: ${actualRecord.proxied ? '🟠 Proxied' : '⚫ DNS Only'}</small>
+                            </div>
+                        `;
+                    }
+                } else {
+                    mismatchCount++;
+                    html += `
+                        <div class="record-mismatch p-3 mb-2">
+                            <strong>❌ ${expected.type} Record NOT FOUND</strong><br>
+                            <small>Expected: ${expected.name} → ${expected.content}</small>
+                        </div>
+                    `;
+                }
+            });
+
+            // Summary
+            html += `
+                <div class="alert ${matchCount === expectedRecords.length ? 'alert-success' : 'alert-warning'} mt-4">
+                    <h6><i class="fas fa-chart-pie"></i> Test Summary:</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong class="text-success">${matchCount} Matches</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <strong class="text-warning">${mismatchCount} Mismatches</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>${expectedRecords.length} Total Expected</strong>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <div class="text-center">
+                        ${matchCount === expectedRecords.length ? 
+                          '<strong class="text-success">🎉 ALL RECORDS MATCH! DNS function working correctly.</strong>' :
+                          '<strong class="text-warning">⚠️ Some discrepancies found. Check record details above.</strong>'
+                        }
+                    </div>
+                </div>
+            `;
+
+            // Show all actual records found
+            html += `<h6 class="mt-4"><i class="fas fa-list"></i> All Records Retrieved:</h6>`;
+            for (const [type, recordList] of Object.entries(records)) {
+                html += `<div class="actual mb-3">
+                    <strong>${type} Records (${recordList.length}):</strong>
+                    <div class="table-responsive">
+                        <table class="table table-sm mt-2">
+                            <thead><tr><th>Name</th><th>Content</th><th>Proxy</th><th>TTL</th></tr></thead>
+                            <tbody>
+                `;
+                recordList.forEach(record => {
+                    html += `
+                        <tr>
+                            <td><small>${record.name}</small></td>
+                            <td><code>${record.content}</code></td>
+                            <td>${record.proxied ? '<span class="proxied">🟠 Proxied</span>' : '<span class="dns-only">⚫ DNS Only</span>'}</td>
+                            <td>${record.ttl === 1 ? 'Auto' : record.ttl}</td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table></div></div>`;
+            }
+
+            document.getElementById('resultsArea').innerHTML = html;
+        }
+
+        function showError(error, data = null) {
+            let html = `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-times-circle"></i> Test Failed</h6>
+                    <p><strong>Error:</strong> ${error}</p>
+            `;
+            
+            if (data && data.available_domains) {
+                html += `
+                    <div class="mt-3">
+                        <strong>Available domains in account:</strong><br>
+                        ${data.available_domains.map(domain => `<span class="badge bg-info me-1">${domain}</span>`).join('')}
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            document.getElementById('resultsArea').innerHTML = html;
+        }
+
+        // Auto-run test
+        setTimeout(() => {
+            document.getElementById('testResults').innerHTML = '<div class="actual p-2">Auto-running test...</div>';
+            runTest();
+        }, 1000);
+    </script>
+</body>
+</html>

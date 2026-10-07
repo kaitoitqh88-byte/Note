@@ -1,0 +1,21 @@
+# Protect downloads directory
+Order Deny,Allow
+Deny from all
+
+# Allow only authorized access
+<Files "*.zip">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+<Files "*.tar.gz">
+    Order Allow,Deny  
+    Allow from all
+</Files>
+
+# Disable directory browsing
+Options -Indexes
+
+# Prevent execution of scripts 
+AddHandler cgi-script .php .phtml .php3 .php4 .php5 .php6
+Options -ExecCGI

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🔧 Debug: Search không có kết quả cho 68winplay.com</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .debug-panel { margin: 20px 0; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #dc3545; }
+        .console-output { background: #1e2124; color: #00ff41; padding: 15px; border-radius: 8px; font-family: 'Roboto Mono', monospace; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        .test-btn { margin: 5px; }
+        .url-test { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>🔧 Debug: Search không có kết quả</h1>
+        
+        <div class="debug-panel">
+            <h3>🚨 Vấn đề cụ thể</h3>
+            <div class="alert alert-warning">
+                <strong>URL không có kết quả:</strong>
+                <div class="url-test mt-2">
+                    /index.php?action=search&q=68winplay.com&status=&per_page=20&use_cache=on
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <button class="btn btn-primary test-btn" onclick="testSpecificQuery()">
+                    🔍 Test query "68winplay.com" 
+                </button>
+                <button class="btn btn-info test-btn" onclick="testAPIBasic()">
+                    📡 Test API cơ bản
+                </button>
+                <button class="btn btn-warning test-btn" onclick="testSimilarQueries()">
+                    🎯 Test queries tương tự
+                </button>
+                <button class="btn btn-success test-btn" onclick="testAllDomains()">
+                    🌐 Kiểm tra tất cả domains
+                </button>
+                <button class="btn btn-secondary test-btn" onclick="clearLog()">
+                    🗑️ Xóa log
+                </button>
+            </div>
+            
+            <div id="debugLog" class="console-output">
+=== Debug Log ===
+Sẵn sàng kiểm tra vấn đề search cho 68winplay.com...
+
+            </div>
+        </div>
+        
+        <div class="debug-panel">
+            <h3>⚡ Quick Test Links</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🔗 Test URLs:</h5>
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search&api=1&q=68winplay.com&per_page=20" class="btn btn-outline-primary" target="_blank">
+                            📡 API: 68winplay.com
+                        </a>
+                        <a href="index.php?action=search&q=68winplay.com" class="btn btn-outline-success" target="_blank">
+                            🌐 Page: 68winplay.com
+                        </a>
+                        <a href="index.php?action=search&api=1&q=&per_page=5" class="btn btn-outline-info" target="_blank">
+                            📊 API: Tất cả domains
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5>🧪 Test với domain khác:</h5>
+                    <div class="d-grid gap-2">
+                        <a href="index.php?action=search&api=1&q=test&per_page=5" class="btn btn-outline-warning" target="_blank">
+                            🔍 API: "test"
+                        </a>
+                        <a href="index.php?action=search&api=1&q=example&per_page=5" class="btn btn-outline-secondary" target="_blank">
+                            📝 API: "example"
+                        </a>
+                        <a href="index.php?action=search&api=1&q=*.com&per_page=10" class="btn btn-outline-danger" target="_blank">
+                            🌟 API: "*.com"
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const debugLog = document.getElementById('debugLog');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+            const icon = icons[type] || 'ℹ️';
+            
+            debugLog.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            debugLog.innerHTML = '=== Debug Log ===\nConsole đã được xóa...\n\n';
+        }
+
+        async function testSpecificQuery() {
+            log('🔍 Testing cụ thể query "68winplay.com"...', 'info');
+            
+            try {
+                const url = 'index.php?action=search&api=1&q=68winplay.com&status=&per_page=20&use_cache=on';
+                log(`📡 Request URL: ${url}`, 'info');
+                
+                const response = await fetch(url);
+                log(`📊 Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const contentType = response.headers.get('content-type');
+                log(`📄 Content-Type: ${contentType}`, 'info');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    log(`✅ JSON response received`, 'success');
+                    log(`📊 Success: ${data.success}`, 'info');
+                    log(`📊 Results count: ${data.data?.result?.length || 0}`, 'info');
+                    log(`📊 Total available: ${data.data?.result_info?.total_count || 0}`, 'info');
+                    
+                    if (data.success) {
+                        if (data.data?.result && data.data.result.length > 0) {
+                            log(`🎉 FOUND: Domain "68winplay.com" exists!`, 'success');
+                            data.data.result.forEach((domain, index) => {
+                                log(`   ${index + 1}. ${domain.name} (${domain.status})`, 'success');
+                            });
+                        } else {
+                            log(`⚠️ NOT FOUND: Domain "68winplay.com" không tồn tại trong hệ thống`, 'warning');
+                            log(`💡 Có thể domain này chưa được add vào Cloudflare`, 'warning');
+                        }
+                    } else {
+                        log(`❌ API Error: ${data.error || 'Unknown error'}`, 'error');
+                    }
+                    
+                    if (data.search) {
+                        log(`⚡ Execution time: ${data.search.execution_time_ms || 0}ms`, 'info');
+                        log(`💾 Cache hit: ${data.search.cache_hit ? 'YES' : 'NO'}`, 'info');
+                    }
+                    
+                } else {
+                    const text = await response.text();
+                    log(`❌ Response không phải JSON:`, 'error');
+                    log(`${text.substring(0, 200)}...`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error testing 68winplay.com: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAPIBasic() {
+            log('\n📡 Testing API cơ bản...', 'info');
+            
+            try {
+                const response = await fetch('index.php?action=search&api=1&q=&per_page=5');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`✅ API hoạt động bình thường`, 'success');
+                    log(`📊 Total domains available: ${data.data?.result_info?.total_count || 0}`, 'info');
+                    log(`📊 Sample results: ${data.data?.result?.length || 0}`, 'info');
+                    
+                    if (data.data?.result) {
+                        log(`🌐 Sample domains:`, 'info');
+                        data.data.result.forEach((domain, index) => {
+                            log(`   ${index + 1}. ${domain.name} (${domain.status})`, 'info');
+                        });
+                    }
+                } else {
+                    log(`❌ API có vấn đề: ${data.error || 'Unknown'}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error testing basic API: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSimilarQueries() {
+            log('\n🎯 Testing queries tương tự...', 'info');
+            
+            const testQueries = [
+                '68win',
+                'winplay', 
+                '68winplay',
+                'play.com',
+                '.com'
+            ];
+            
+            for (const query of testQueries) {
+                try {
+                    log(`🔍 Testing "${query}"...`, 'info');
+                    const response = await fetch(`index.php?action=search&api=1&q=${encodeURIComponent(query)}&per_page=3`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const count = data.data?.result?.length || 0;
+                        log(`   Results for "${query}": ${count} domains`, count > 0 ? 'success' : 'warning');
+                        
+                        if (count > 0) {
+                            log(`   Sample: ${data.data.result[0].name}`, 'info');
+                        }
+                    } else {
+                        log(`   Error for "${query}": ${data.error}`, 'error');
+                    }
+                    
+                } catch (error) {
+                    log(`   Error testing "${query}": ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testAllDomains() {
+            log('\n🌐 Kiểm tra danh sách tất cả domains...', 'info');
+            
+            try {
+                const response = await fetch('index.php?action=search&api=1&q=&per_page=50');
+                const data = await response.json();
+                
+                if (data.success && data.data?.result) {
+                    log(`📊 Total domains trong hệ thống: ${data.data.result_info?.total_count || data.data.result.length}`, 'success');
+                    
+                    // Check if 68winplay.com exists in the list
+                    const found = data.data.result.find(domain => 
+                        domain.name.toLowerCase().includes('68winplay') ||
+                        domain.name.toLowerCase().includes('winplay')
+                    );
+                    
+                    if (found) {
+                        log(`🎉 FOUND related domain: ${found.name} (${found.status})`, 'success');
+                    } else {
+                        log(`⚠️ Không tìm thấy domain nào chứa "68winplay" hoặc "winplay"`, 'warning');
+                    }
+                    
+                    // Show some sample domains
+                    log(`📋 Sample domains trong hệ thống:`, 'info');
+                    data.data.result.slice(0, 10).forEach((domain, index) => {
+                        log(`   ${index + 1}. ${domain.name} (${domain.status})`, 'info');
+                    });
+                    
+                    log(`\n💡 PHÂN TÍCH:`, 'warning');
+                    log(`- Nếu 68winplay.com không có trong danh sách trên`, 'warning');
+                    log(`- Thì domain này chưa được add vào Cloudflare account`, 'warning');
+                    log(`- Cần add domain vào Cloudflare trước khi có thể search`, 'warning');
+                    
+                } else {
+                    log(`❌ Không thể lấy danh sách domains: ${data.error || 'Unknown'}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error getting all domains: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run specific test when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                log('🚀 Debug page loaded cho vấn đề 68winplay.com', 'success');
+                log('🔍 Bắt đầu test cụ thể...', 'info');
+                testSpecificQuery();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

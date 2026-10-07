@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Endpoints - Cloudflare Domain List</title>
+    <style>
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { 
+            background: #0056b3; 
+        }
+        button:disabled { 
+            background: #6c757d; 
+            cursor: not-allowed; 
+        }
+        .result { 
+            background: #e9ecef; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-top: 10px;
+            font-family: 'Roboto Mono', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .status { 
+            padding: 5px 10px; 
+            border-radius: 3px; 
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .status.online { background: #d4edda; color: #155724; }
+        .status.offline { background: #f8d7da; color: #721c24; }
+        .pagination-test {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        input, select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test API Endpoints - Cloudflare Domain List</h1>
+        <p><strong>Mục đích:</strong> Kiểm tra chức năng lấy danh sách domain và pagination API</p>
+        
+        <!-- Server Status Check -->
+        <div class="test-section">
+            <h3>1. Kiểm tra trạng thái PHP Server</h3>
+            <button onclick="checkServerStatus()">Kiểm tra Server</button>
+            <div id="server-status" class="status offline">Server: Offline</div>
+            <div id="server-result" class="result"></div>
+        </div>
+
+        <!-- Basic API Test -->
+        <div class="test-section">
+            <h3>2. Test API Zones Endpoint</h3>
+            <div class="form-group">
+                <label>Page:</label>
+                <input type="number" id="test-page" value="1" min="1" max="100">
+                
+                <label>Per Page:</label>
+                <select id="test-perpage">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="pagination-test">
+                <button onclick="testAPIEndpoint()">Test Zones API</button>
+                <button onclick="testPagination(1)">First Page</button>
+                <button onclick="testPagination(2)">Page 2</button>
+                <button onclick="testPagination(3)">Page 3</button>
+            </div>
+            <div id="api-result" class="result"></div>
+        </div>
+
+        <!-- Search Test -->
+        <div class="test-section">
+            <h3>3. Test Search API</h3>
+            <div class="form-group">
+                <label>Search Query:</label>
+                <input type="text" id="search-query" placeholder="Enter domain name or part of it">
+                <button onclick="testSearchAPI()">Search</button>
+            </div>
+            <div id="search-result" class="result"></div>
+        </div>
+
+        <!-- Dashboard Load Test -->
+        <div class="test-section">
+            <h3>4. Test Dashboard Load</h3>
+            <button onclick="loadDashboard()">Load Dashboard</button>
+            <div id="dashboard-status" class="result"></div>
+        </div>
+
+        <!-- Connection Test -->
+        <div class="test-section">
+            <h3>5. Test Direct PHP Script</h3>
+            <p><em>Lưu ý: Cần PHP server để chạy test này</em></p>
+            <button onclick="runPHPTest()" id="php-test-btn" disabled>Run PHP Test</button>
+            <div id="php-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let serverOnline = false;
+
+        // Check if PHP server is running
+        async function checkServerStatus() {
+            const resultDiv = document.getElementById('server-result');
+            const statusDiv = document.getElementById('server-status');
+            
+            try {
+                // Test multiple common local server addresses
+                const servers = [
+                    'http://localhost:8000',
+                    'http://localhost:8080',
+                    'http://localhost:80',
+                    'http://127.0.0.1:8000'
+                ];
+                
+                resultDiv.textContent = 'Checking server status...';
+                
+                for (const server of servers) {
+                    try {
+                        const response = await fetch(`${server}/index.php?action=zones&page=1&per_page=5`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            serverOnline = true;
+                            statusDiv.textContent = `Server: Online (${server})`;
+                            statusDiv.className = 'status online';
+                            document.getElementById('php-test-btn').disabled = false;
+                            resultDiv.textContent = `✓ PHP Server đang chạy tại: ${server}`;
+                            resultDiv.className = 'result success';
+                            return;
+                        }
+                    } catch (e) {
+                        // Continue to next server
+                    }
+                }
+                
+                throw new Error('No server found');
+                
+            } catch (error) {
+                serverOnline = false;
+                statusDiv.textContent = 'Server: Offline';
+                statusDiv.className = 'status offline';
+                resultDiv.textContent = `❌ Không tìm thấy PHP server. \n\nCách khởi động:\n1. Mở terminal trong thư mục D:\\Note\n2. Chạy: php -S localhost:8000\n3. Hoặc sử dụng XAMPP/WAMP`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Test API endpoint
+        async function testAPIEndpoint() {
+            if (!serverOnline) {
+                alert('Vui lòng kiểm tra server trước!');
+                return;
+            }
+
+            const page = document.getElementById('test-page').value;
+            const perPage = document.getElementById('test-perpage').value;
+            const resultDiv = document.getElementById('api-result');
+            
+            try {
+                resultDiv.textContent = 'Loading API data...';
+                resultDiv.className = 'result';
+                
+                const response = await fetch(`http://localhost:8000/index.php?action=zones&page=${page}&per_page=${perPage}`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const zones = data.data.result || [];
+                    const resultInfo = data.data.result_info || {};
+                    
+                    let output = `✓ API Call Thành Công!\n\n`;
+                    output += `📊 Pagination Info:\n`;
+                    output += `- Current Page: ${resultInfo.page || 'N/A'}\n`;
+                    output += `- Per Page: ${resultInfo.per_page || 'N/A'}\n`;
+                    output += `- Total Pages: ${resultInfo.total_pages || 'N/A'}\n`;
+                    output += `- Total Count: ${resultInfo.total_count || 'N/A'}\n`;
+                    output += `- Current Count: ${zones.length}\n\n`;
+                    
+                    output += `🌐 First 5 Domains:\n`;
+                    zones.slice(0, 5).forEach((zone, index) => {
+                        output += `${index + 1}. ${zone.name}\n`;
+                        output += `   - ID: ${zone.id}\n`;
+                        output += `   - Status: ${zone.status}\n`;
+                        output += `   - Plan: ${zone.plan?.name || 'Unknown'}\n\n`;
+                    });
+                    
+                    resultDiv.textContent = output;
+                    resultDiv.className = 'result success';
+                } else {
+                    throw new Error(data.error || 'Unknown API error');
+                }
+                
+            } catch (error) {
+                resultDiv.textContent = `❌ API Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Test specific pagination
+        async function testPagination(page) {
+            document.getElementById('test-page').value = page;
+            await testAPIEndpoint();
+        }
+
+        // Test search API
+        async function testSearchAPI() {
+            if (!serverOnline) {
+                alert('Vui lòng kiểm tra server trước!');
+                return;
+            }
+
+            const query = document.getElementById('search-query').value;
+            const resultDiv = document.getElementById('search-result');
+            
+            if (!query.trim()) {
+                alert('Vui lòng nhập từ khóa tìm kiếm!');
+                return;
+            }
+            
+            try {
+                resultDiv.textContent = 'Searching...';
+                resultDiv.className = 'result';
+                
+                const response = await fetch(`http://localhost:8000/index.php?action=search&query=${encodeURIComponent(query)}&page=1&per_page=20`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const zones = data.result || [];
+                    
+                    let output = `🔍 Search Results for "${query}":\n\n`;
+                    output += `Found ${zones.length} domains\n\n`;
+                    
+                    zones.forEach((zone, index) => {
+                        output += `${index + 1}. ${zone.name}\n`;
+                        output += `   - Status: ${zone.status}\n`;
+                        output += `   - Plan: ${zone.plan?.name || 'Unknown'}\n\n`;
+                    });
+                    
+                    resultDiv.textContent = output;
+                    resultDiv.className = 'result success';
+                } else {
+                    throw new Error(data.error || 'Search failed');
+                }
+                
+            } catch (error) {
+                resultDiv.textContent = `❌ Search Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Load dashboard
+        function loadDashboard() {
+            const resultDiv = document.getElementById('dashboard-status');
+            
+            if (serverOnline) {
+                window.open('http://localhost:8000/dashboard.php', '_blank');
+                resultDiv.textContent = '✓ Dashboard opened in new tab';
+                resultDiv.className = 'result success';
+            } else {
+                resultDiv.textContent = '❌ Server offline. Please start PHP server first.';
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Run PHP test script
+        async function runPHPTest() {
+            if (!serverOnline) {
+                alert('Server is not running!');
+                return;
+            }
+
+            const resultDiv = document.getElementById('php-result');
+            
+            try {
+                resultDiv.textContent = 'Running PHP test script...';
+                resultDiv.className = 'result';
+                
+                const response = await fetch('http://localhost:8000/test_domain_list.php');
+                const text = await response.text();
+                
+                resultDiv.textContent = text;
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                
+            } catch (error) {
+                resultDiv.textContent = `❌ PHP Test Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Auto-check server on page load
+        window.onload = function() {
+            checkServerStatus();
+        };
+    </script>
+</body>
+</html>

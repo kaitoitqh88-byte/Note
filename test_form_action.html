@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Form Action - Domain Search</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .checkbox-group input {
+            width: auto;
+            margin-right: 10px;
+        }
+        .result-info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; color: #856404; }
+        .debug {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Form Action - Domain Search</h1>
+    <p>Trang này giúp test form action và parameters của search form.</p>
+
+    <!-- Test Form (giống như trong search.php) -->
+    <div class="test-form">
+        <h2>🔍 Domain Search Form</h2>
+        <form id="searchForm" action="index.php" method="GET">
+            <input type="hidden" name="action" value="search">
+            
+            <div class="form-group">
+                <label for="searchInput">Tìm kiếm domain:</label>
+                <input type="text" name="q" id="searchInput" placeholder="Nhập tên domain (ví dụ: example.com)">
+            </div>
+
+            <div class="form-group">
+                <label for="statusFilter">Trạng thái:</label>
+                <select name="status" id="statusFilter">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="initializing">Initializing</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="perPageSelect">Kết quả mỗi trang:</label>
+                <select name="per_page" id="perPageSelect">
+                    <option value="10">10 kết quả</option>
+                    <option value="20" selected>20 kết quả</option>
+                    <option value="50">50 kết quả</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Tùy chọn nâng cao:</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" name="use_cache" id="useCache" checked>
+                    <label for="useCache" style="margin-bottom: 0;">Sử dụng Cache</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" name="bulk" id="bulkMode">
+                    <label for="bulkMode" style="margin-bottom: 0;">Bulk Search</label>
+                </div>
+            </div>
+
+            <button type="submit">🔍 Tìm kiếm</button>
+            <button type="button" onclick="showFormData()">📋 Xem form data</button>
+            <button type="button" onclick="testJavaScript()">🧪 Test JavaScript</button>
+        </form>
+    </div>
+
+    <!-- Form Information -->
+    <div class="result-info">
+        <h3>📊 Form Information</h3>
+        <div id="formInfo">
+            <p><strong>Form Action:</strong> <span class="info">index.php</span></p>
+            <p><strong>Form Method:</strong> <span class="info">GET</span></p>
+            <p><strong>Hidden Action:</strong> <span class="info">search</span></p>
+            <p><strong>Expected URL Pattern:</strong> <code>index.php?action=search&q=...&status=...&per_page=...</code></p>
+        </div>
+    </div>
+
+    <!-- Debug Output -->
+    <div class="test-form">
+        <h3>🔧 Debug Output</h3>
+        <div id="debugOutput" class="debug">Debug information will appear here...</div>
+        <button onclick="clearDebug()">🗑️ Clear Debug</button>
+    </div>
+
+    <script>
+        function logDebug(message, type = 'info') {
+            const debugOutput = document.getElementById('debugOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeMarker = {
+                'info': 'ℹ️',
+                'success': '✅', 
+                'error': '❌',
+                'warning': '⚠️'
+            }[type] || 'ℹ️';
+            
+            debugOutput.textContent += `[${timestamp}] ${typeMarker} ${message}\n`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+
+        function showFormData() {
+            const form = document.getElementById('searchForm');
+            const formData = new FormData(form);
+            
+            logDebug('=== FORM DATA ===');
+            
+            // Convert FormData to URL parameters
+            const params = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                params.append(key, value);
+            }
+            
+            const fullUrl = `${form.action}?${params.toString()}`;
+            
+            logDebug(`Full URL: ${fullUrl}`);
+            logDebug('Parameters:');
+            
+            for (let [key, value] of params.entries()) {
+                logDebug(`  ${key} = "${value}"`);
+            }
+            
+            logDebug('=== END FORM DATA ===', 'success');
+        }
+
+        function testJavaScript() {
+            logDebug('Testing JavaScript functionality...', 'info');
+            
+            // Test form elements
+            const elements = ['searchInput', 'statusFilter', 'perPageSelect', 'useCache', 'bulkMode'];
+            let allFound = true;
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    logDebug(`Element ${id}: Found ✓`, 'success');
+                    logDebug(`  Type: ${element.type || element.tagName}`);
+                    logDebug(`  Name: ${element.name || 'No name'}`);
+                    logDebug(`  Value: ${element.value || element.checked || 'Empty'}`);
+                } else {
+                    logDebug(`Element ${id}: NOT FOUND!`, 'error');
+                    allFound = false;
+                }
+            });
+            
+            if (allFound) {
+                logDebug('All form elements found! ✅', 'success');
+                alert('✅ JavaScript test passed! Check debug output for details.');
+            } else {
+                logDebug('Some elements missing! ❌', 'error');
+                alert('❌ JavaScript test failed! Check debug output.');
+            }
+        }
+
+        function clearDebug() {
+            document.getElementById('debugOutput').textContent = 'Debug cleared.\n';
+        }
+
+        // Auto-test on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            logDebug('Page loaded successfully', 'success');
+            logDebug('Form ready for testing', 'info');
+            
+            // Auto-show form data for reference
+            setTimeout(() => {
+                logDebug('=== INITIAL FORM STATE ===');
+                showFormData();
+            }, 500);
+        });
+
+        // Intercept form submission for testing
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            logDebug('Form submitted!', 'warning');
+            logDebug('In a real scenario, this would go to index.php', 'info');
+            
+            // Show what would be submitted
+            showFormData();
+            
+            // Prevent actual submission for testing
+            e.preventDefault();
+            logDebug('Form submission prevented for testing purposes', 'warning');
+            
+            alert('Form submission intercepted for testing. Check debug output to see what would be sent.');
+        });
+    </script>
+</body>
+</html>

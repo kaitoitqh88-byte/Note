@@ -1,0 +1,63 @@
+/* Green Matrix Theme for IDN Punycode Converter */
+body {
+    background: #000;
+    color: #39ff14;
+}
+.header, .content, .card, .alert-info, .alert-danger, .results, .results-summary, .results-textarea, .bg-white, .bg-light, .results-actions, .example-item code, .container.mt-4 {
+    background: #000 !important;
+    border: none !important;
+    color: #39ff14 !important;
+    box-shadow: none !important;
+    border-radius: 12px;
+}
+.card-header, .card-title, .form-label, .form-check-label, .results-summary h3, .format-option span, .alert, .alert-info, .alert-danger {
+    color: #39ff14 !important;
+    background: #000 !important;
+    border-color: #39ff14 !important;
+}
+textarea, .results-textarea, input[type="text"], input[type="number"], input[type="email"], input[type="password"], select {
+    background: #011a2b !important;
+    color: #39ff14 !important;
+    border: 1.5px solid #39ff14 !important;
+    border-radius: 8px;
+    box-shadow: none !important;
+}
+input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+    border-color: #39ff14 !important;
+    outline: none;
+}
+input[type="radio"], input[type="checkbox"] {
+    accent-color: #39ff14 !important;
+    background: #011a2b !important;
+    border: 1.5px solid #39ff14 !important;
+}
+.btn-primary, .btn-success, .copy-all-btn, .select-all-btn {
+    background: #39ff14 !important;
+    color: #000 !important;
+    border: 1.5px solid #39ff14 !important;
+    font-weight: bold;
+    box-shadow: none !important;
+}
+.btn-primary:hover, .btn-success:hover, .copy-all-btn:hover, .select-all-btn:hover {
+    background: #2ecc40 !important;
+    color: #000 !important;
+}
+::-webkit-scrollbar-thumb {
+    background: #39ff14 !important;
+}
+::-webkit-scrollbar {
+    background: #000 !important;
+}
+.example-item {
+    background: #000 !important;
+}
+ul, ol, li {
+    list-style: none !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+.sidebar-nav {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+}

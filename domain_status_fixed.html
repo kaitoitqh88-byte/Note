@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Status Checker - FIXED</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="alert alert-success">
+            <h4><i class="fas fa-check-circle me-2"></i>Domain Status Checker - Error FIXED!</h4>
+            <p><strong>Original Error:</strong> <code>SyntaxError: Unexpected token '&lt;', "&lt;br /&gt;&lt;fo"... is not valid JSON</code></p>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-wrench me-2"></i>Issues Fixed</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Root Cause:</h6>
+                        <ul>
+                            <li>Missing <code>config.php</code> include</li>
+                            <li>CloudflareAPI constants not defined</li>
+                            <li>PHP errors being returned as HTML instead of JSON</li>
+                            <li>No proper error handling for invalid responses</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">Fixes Applied:</h6>
+                        <ul>
+                            <li>✅ Added <code>require_once config.php</code></li>
+                            <li>✅ Enhanced JSON header setting</li>
+                            <li>✅ Added output buffer cleaning</li>
+                            <li>✅ Improved JavaScript error handling</li>
+                            <li>✅ Added response validation before JSON parsing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6><i class="fas fa-tools me-2"></i>Main Tool</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <p>Domain Status Checker với đầy đủ tính năng</p>
+                        <a href="domain_status_checker.php" class="btn btn-primary">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Open Tool
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h6><i class="fas fa-bug me-2"></i>Debug Test</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <p>Test API response và debug errors</p>
+                        <a href="debug_domain_checker.html" class="btn btn-warning">
+                            <i class="fas fa-search me-2"></i>
+                            Debug Test
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h6><i class="fas fa-cog me-2"></i>API Test</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <p>Test basic API instantiation</p>
+                        <a href="test_api_basic.php" class="btn btn-info">
+                            <i class="fas fa-code me-2"></i>
+                            API Test
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h6><i class="fas fa-code me-2"></i>Technical Details</h6>
+            </div>
+            <div class="card-body">
+                <h6>Before Fix (Error):</h6>
+                <pre class="bg-light p-2"><code>// domain_status_checker.php
+require_once __DIR__ . '/CloudflareAPI.php';  // ❌ Missing config.php
+
+// CloudflareAPI.php tries to use:
+$this->email = CLOUDFLARE_EMAIL;     // ❌ Undefined constant
+$this->apiToken = CLOUDFLARE_API_TOKEN;  // ❌ Undefined constant</code></pre>
+
+                <h6>After Fix (Working):</h6>
+                <pre class="bg-light p-2"><code>// domain_status_checker.php
+require_once __DIR__ . '/config.php';       // ✅ Load constants first
+require_once __DIR__ . '/CloudflareAPI.php'; // ✅ Now can use constants
+
+// Enhanced error handling:
+header('Content-Type: application/json');
+if (ob_get_level()) ob_clean();              // ✅ Clean output buffer</code></pre>
+
+                <h6>JavaScript Enhancement:</h6>
+                <pre class="bg-light p-2"><code>// Before: Direct JSON parsing (could fail)
+const data = await response.json();
+
+// After: Validate response first
+const responseText = await response.text();
+const data = JSON.parse(responseText);  // ✅ With error handling</code></pre>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4">
+            <h6><i class="fas fa-lightbulb me-2"></i>How to Test:</h6>
+            <ol>
+                <li>Click "Open Tool" để test main functionality</li>
+                <li>Nhập sample domains: <code>google.com, cloudflare.com</code></li>
+                <li>Click "Check Tình Trạng Domain"</li>
+                <li>Verify kết quả hiển thị properly (không có JSON error)</li>
+            </ol>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="search.php" class="btn btn-outline-primary">
+                <i class="fas fa-search me-2"></i>
+                Domain Search
+            </a>
+            <a href="index.php" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-2"></i>
+                Home
+            </a>
+        </div>
+    </div>
+</body>
+</html>

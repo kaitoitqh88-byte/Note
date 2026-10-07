@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Security Rules UI - Demo Preview</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/security-manager.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Demo specific styles */
+        .demo-notice {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10000;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        body {
+            margin-top: 60px; /* Space for demo notice */
+        }
+        
+        .mock-data {
+            opacity: 0.8;
+            font-style: italic;
+        }
+        
+        .demo-button {
+            background: linear-gradient(135deg, #10b981, #06d6a0);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 0 5px;
+        }
+        
+        .demo-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Notice -->
+    <div class="demo-notice">
+        🚀 <strong>DEMO MODE</strong> - Giao diện Security Rules Management UI | 
+        <span style="opacity: 0.9;">Dữ liệu mẫu để preview chức năng</span> | 
+        <button class="demo-button" onclick="showDemoInfo()">
+            <i class="fas fa-info-circle"></i> Hướng dẫn
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-shield-alt"></i> Security Rules</h1>
+                <p>Cloudflare Management UI</p>
+            </div>
+
+            <div class="zone-selector">
+                <label>Chọn Zone:</label>
+                <select id="zoneSelect">
+                    <option value="example.com">example.com (Demo)</option>
+                    <option value="demo.vn">demo.vn (Test)</option>
+                    <option value="secure-site.com">secure-site.com (Prod)</option>
+                </select>
+            </div>
+
+            <nav class="menu">
+                <a href="#" class="menu-item active" data-section="dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="#" class="menu-item" data-section="create">
+                    <i class="fas fa-plus"></i> Tạo Rules
+                </a>
+                <a href="#" class="menu-item" data-section="templates">
+                    <i class="fas fa-layer-group"></i> Templates
+                </a>
+
+                <div class="menu-section">
+                    <a href="#" class="menu-item" data-section="rules">
+                        <i class="fas fa-list"></i> Quản Lý Rules
+                    </a>
+                    <a href="#" class="menu-item" data-section="test">
+                        <i class="fas fa-flask"></i> Test Tools
+                    </a>
+                    <a href="#" class="menu-item" data-section="bulk">
+                        <i class="fas fa-tasks"></i> Bulk Operations
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section">
+                <div class="page-header">
+                    <h2><i class="fas fa-chart-line"></i> Dashboard Overview</h2>
+                    <p>Tổng quan về Security Rules và hoạt động hệ thống</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">127</div>
+                        <div class="stat-label">Total Rules</div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-number">89</div>
+                        <div class="stat-label">Active Rules</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-number">2.3K</div>
+                        <div class="stat-label">Blocked Requests</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-number">456</div>
+                        <div class="stat-label">Challenged</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock"></i> Hoạt Động Gần Đây</h3>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="mock-data">
+                        <p>🚫 <strong>15:42</strong> - Blocked malicious bot from IP 192.168.1.100</p>
+                        <p>⚠️ <strong>15:39</strong> - Challenge issued to suspicious request</p>
+                        <p>✅ <strong>15:35</strong> - New rule "Block SQL Injection" created</p>
+                        <p>🔄 <strong>15:30</strong> - Rule "Rate Limit API" was updated</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Rules Section -->
+            <div id="create" class="section hidden">
+                <div class="page-header">
+                    <h2><i class="fas fa-plus"></i> Tạo Security Rule Mới</h2>
+                    <p>Tạo quy tắc bảo mật với Expression Engine của Cloudflare</p>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-edit"></i> Thông Tin Rule</h3>
+                        </div>
+                        
+                        <form id="createRuleForm">
+                            <div class="form-group">
+                                <label>Mô tả Rule:</label>
+                                <input type="text" class="form-control" name="description" 
+                                       placeholder="VD: Block SQL injection attacks">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Action:</label>
+                                <select class="form-control" name="action">
+                                    <option value="block">Block - Chặn hoàn toàn</option>
+                                    <option value="challenge">Challenge - Yêu cầu xác thực</option>
+                                    <option value="managed_challenge">Managed Challenge - Tự động</option>
+                                    <option value="js_challenge">JS Challenge - JavaScript</option>
+                                    <option value="allow">Allow - Cho phép</option>
+                                    <option value="log">Log - Chỉ ghi log</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Priority (1-10):</label>
+                                <input type="number" class="form-control" name="priority" 
+                                       value="5" min="1" max="10">
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="enabled" checked> 
+                                    Kích hoạt ngay
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-code"></i> Expression Builder</h3>
+                        </div>
+
+                        <div class="expression-builder">
+                            <h4>Visual Builder</h4>
+                            <div class="builder-row">
+                                <select id="builderField">
+                                    <option value="http.host">http.host</option>
+                                    <option value="http.request.uri">http.request.uri</option>
+                                    <option value="http.user_agent">http.user_agent</option>
+                                    <option value="ip.src">ip.src</option>
+                                </select>
+                                <select id="builderOperator">
+                                    <option value="eq">equals</option>
+                                    <option value="contains">contains</option>
+                                    <option value="matches">matches regex</option>
+                                    <option value="in">in list</option>
+                                </select>
+                                <input type="text" id="builderValue" placeholder="Value">
+                                <button type="button" class="btn btn-primary btn-sm" id="addCondition">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Expression:</label>
+                            <textarea class="form-control" id="expression" name="expression" rows="6"
+                                      placeholder="(http.user_agent contains &quot;bot&quot; and not http.user_agent contains &quot;Googlebot&quot;)"></textarea>
+                        </div>
+
+                        <div id="validationResult"></div>
+
+                        <div style="margin-top: 20px;">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Tạo Rule
+                            </button>
+                            <button type="button" class="btn btn-secondary">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Templates Section -->
+            <div id="templates" class="section hidden">
+                <div class="page-header">
+                    <h2><i class="fas fa-layer-group"></i> Security Templates</h2>
+                    <p>Sử dụng templates có sẵn để tạo rules nhanh chóng</p>
+                </div>
+
+                <div class="templates-grid" id="templatesGrid">
+                    <!-- Template Cards -->
+                    <div class="template-card" data-template-id="block-bots">
+                        <div class="category">Security</div>
+                        <span class="action-badge block">BLOCK</span>
+                        <h4>Block Bad Bots</h4>
+                        <p class="description">Chặn các bot độc hại, giữ lại search engine bots hợp lệ</p>
+                        <div class="expression">(http.user_agent contains "bot" and not http.user_agent contains "Googlebot")</div>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Sử dụng
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="template-card" data-template-id="geo-block">
+                        <div class="category">Geo-blocking</div>
+                        <span class="action-badge block">BLOCK</span>
+                        <h4>Geographic Blocking</h4>
+                        <p class="description">Chặn truy cập từ các quốc gia không mong muốn</p>
+                        <div class="expression">(ip.geoip.country ne "VN" and http.request.uri.path contains "/admin")</div>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Sử dụng
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="template-card" data-template-id="sql-injection">
+                        <div class="category">Security</div>
+                        <span class="action-badge block">BLOCK</span>
+                        <h4>SQL Injection Protection</h4>
+                        <p class="description">Chặn các cuộc tấn công SQL injection phổ biến</p>
+                        <div class="expression">(http.request.uri.query contains "union select" or http.request.uri.query contains "' or 1=1")</div>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Sử dụng
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="template-card" data-template-id="rate-limit">
+                        <div class="category">Performance</div>
+                        <span class="action-badge challenge">CHALLENGE</span>
+                        <h4>API Rate Limiting</h4>
+                        <p class="description">Giới hạn tần suất truy cập API endpoints</p>
+                        <div class="expression">(http.request.uri.path contains "/api/" and rate(ip.src) > 100)</div>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Sử dụng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules Management Section -->
+            <div id="rules" class="section hidden">
+                <div class="page-header">
+                    <h2><i class="fas fa-list"></i> Quản Lý Security Rules</h2>
+                    <p>Xem và quản lý tất cả các rules đã tạo</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-table"></i> Danh Sách Rules</h3>
+                        <button class="btn btn-success btn-sm">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div id="rulesTableContainer">
+                        <table class="rules-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Mô tả</th>
+                                    <th>Action</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>abc123</td>
+                                    <td>Block SQL Injection</td>
+                                    <td><span class="action-badge block">BLOCK</span></td>
+                                    <td>1</td>
+                                    <td><span class="status-badge enabled">enabled</span></td>
+                                    <td>2024-01-15</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning demo-button">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger demo-button">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary demo-button">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>def456</td>
+                                    <td>Geographic Blocking</td>
+                                    <td><span class="action-badge block">BLOCK</span></td>
+                                    <td>3</td>
+                                    <td><span class="status-badge enabled">enabled</span></td>
+                                    <td>2024-01-14</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning demo-button">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger demo-button">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary demo-button">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>ghi789</td>
+                                    <td>Rate Limit API</td>
+                                    <td><span class="action-badge challenge">CHALLENGE</span></td>
+                                    <td>5</td>
+                                    <td><span class="status-badge disabled">disabled</span></td>
+                                    <td>2024-01-13</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning demo-button">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger demo-button">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary demo-button">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Tools Section -->
+            <div id="test" class="section hidden">
+                <div class="page-header">
+                    <h2><i class="fas fa-flask"></i> Test Tools</h2>
+                    <p>Test và debug các expressions trước khi apply</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-vial"></i> Expression Tester</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Expression to test:</label>
+                        <textarea class="form-control" rows="4" 
+                                  placeholder="(http.user_agent contains &quot;bot&quot;)"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Sample request data (JSON):</label>
+                        <textarea class="form-control" rows="8" 
+                                  placeholder='{"http": {"user_agent": "Mozilla/5.0...", "host": "example.com"}}'></textarea>
+                    </div>
+                    
+                    <button class="btn btn-primary">
+                        <i class="fas fa-play"></i> Test Expression
+                    </button>
+                    
+                    <div style="margin-top: 20px;">
+                        <div class="alert alert-info mock-data">
+                            <strong>Test Result:</strong> Expression would MATCH this request
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Operations Section -->
+            <div id="bulk" class="section hidden">
+                <div class="page-header">
+                    <h2><i class="fas fa-tasks"></i> Bulk Operations</h2>
+                    <p>Thao tác hàng loạt với nhiều rules cùng lúc</p>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-upload"></i> Import Rules</h3>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Upload JSON file:</label>
+                            <input type="file" class="form-control" accept=".json">
+                        </div>
+                        
+                        <button class="btn btn-success">
+                            <i class="fas fa-upload"></i> Import Rules
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-download"></i> Export Rules</h3>
+                        </div>
+                        
+                        <p class="mock-data">Export tất cả rules hiện tại thành file JSON</p>
+                        
+                        <button class="btn btn-primary">
+                            <i class="fas fa-download"></i> Export All Rules
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h3><i class="fas fa-toggle-on"></i> Batch Operations</h3>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" data-bulk-action="enable-all">
+                            <i class="fas fa-play"></i> Enable All
+                        </button>
+                        <button class="btn btn-warning" data-bulk-action="disable-all">
+                            <i class="fas fa-pause"></i> Disable All
+                        </button>
+                        <button class="btn btn-danger" data-bulk-action="delete-disabled">
+                            <i class="fas fa-trash"></i> Delete Disabled
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-warning mock-data">
+                        <strong>Note:</strong> Bulk operations sẽ ảnh hưởng đến nhiều rules. Vui lòng cân nhắc kỹ trước khi thực hiện.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/security-manager.js"></script>
+    
+    <script>
+        // Demo specific functionality
+        function showDemoInfo() {
+            alert(`
+🛡️ SECURITY RULES MANAGEMENT UI - DEMO
+
+✨ Features được demonstrate:
+• Dashboard với thống kê real-time
+• Form tạo rules với validation
+• Templates gallery với categories
+• Quản lý rules với full CRUD
+• Test tools cho expression debugging
+• Bulk operations cho efficiency
+
+🎯 UI Features:
+• Responsive design cho mọi devices
+• Real-time validation và feedback  
+• Professional Vietnamese interface
+• Smooth animations và transitions
+• Accessibility support
+
+📱 Navigation:
+• Sidebar menu với các sections
+• Zone selector cho multi-zone
+• Breadcrumb và status indicators
+
+🚀 Technology Stack:
+• Pure PHP backend with OOP
+• Vanilla JavaScript frontend
+• CSS3 với modern features
+• Font Awesome icons
+• Responsive grid system
+
+⚡ Performance:
+• Optimized asset loading
+• Lazy loading cho heavy components
+• Browser caching support
+• Minification ready
+
+Đây là demo UI hoàn chỉnh cho Security Rules Management System!
+            `);
+        }
+
+        // Override some functions for demo
+        if (typeof securityManager !== 'undefined') {
+            // Mock API calls cho demo
+            securityManager.apiCall = async function(action, data = {}) {
+                console.log('Demo API Call:', action, data);
+                
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Mock responses
+                switch (action) {
+                    case 'get_dashboard_stats':
+                        return {
+                            success: true,
+                            data: {
+                                total_rules: 127,
+                                enabled_rules: 89,
+                                bypassed_requests: 2300,
+                                challenged_requests: 456
+                            }
+                        };
+                    case 'validate_expression':
+                        return {
+                            success: data.expression.length > 10,
+                            message: data.expression.length <= 10 ? 'Expression too short for demo' : ''
+                        };
+                    default:
+                        return { success: true, data: {} };
+                }
+            };
+            
+            // Show demo notifications
+            setTimeout(() => {
+                securityManager.showNotification('🎉 Demo UI đã sẵn sàng! Click các menu để explore features.', 'success');
+            }, 1000);
+        }
+        
+        // Demo interactions
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.demo-button')) {
+                e.preventDefault();
+                const btn = e.target.closest('.demo-button');
+                const action = btn.textContent.trim();
+                
+                // Show demo action
+                if (typeof securityManager !== 'undefined') {
+                    securityManager.showNotification(`🎭 Demo Action: ${action}`, 'info');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
