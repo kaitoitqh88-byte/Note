@@ -4,6 +4,11 @@
  * Cập nhật Rewrite rule "wordpress" trên aaPanel theo danh sách domain.
  */
 
+$rewriteComposerAutoload = __DIR__ . '/vendor/autoload.php';
+if (is_file($rewriteComposerAutoload)) {
+    require_once $rewriteComposerAutoload;
+}
+
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/CloudflareAPI.php';
 
@@ -137,15 +142,30 @@ function rewriteResolveApiFromVps(array $vps) {
         $panelUrl = 'http://' . $panelUrl;
     }
 
-    // Chuẩn hóa URL aaPanel; giữ path apsess_* nếu có vì một số API nội bộ yêu cầu path session này.
     $parsed = parse_url($panelUrl);
     if (is_array($parsed) && !empty($parsed['host'])) {
         $scheme = $parsed['scheme'] ?? 'http';
         $portPart = isset($parsed['port']) ? ':' . $parsed['port'] : '';
-        $origin = $scheme . '://' . $parsed['host'] . $portPart;
-        $path = trim((string)($parsed['path'] ?? ''), '/');
-        if ($path !== '' && preg_match('/^apsess_/i', $path)) {
-            $panelUrl = $origin . '/' . $path;
+        $panelHost = (string)$parsed['host'];
+        $vpsIp = trim((string)($vps['ip'] ?? ''));
+        if (filter_var($panelHost, FILTER_VALIDATE_IP) !== false
+            && filter_var($vpsIp, FILTER_VALIDATE_IP) !== false
+            && strcasecmp($panelHost, $vpsIp) !== 0) {
+            $panelHost = $vpsIp;
+        }
+        if (strpos($panelHost, ':') !== false && $panelHost[0] !== '[') {
+            $panelHost = '[' . $panelHost . ']';
+        }
+        $origin = $scheme . '://' . $panelHost . $portPart;
+        $sessionPath = trim((string)($vps['aapanel_session_path'] ?? ''), '/');
+        if ($sessionPath === '') {
+            $configuredPath = trim((string)($parsed['path'] ?? ''), '/');
+            if (preg_match('/^apsess_[a-z0-9]+$/i', $configuredPath)) {
+                $sessionPath = $configuredPath;
+            }
+        }
+        if ($sessionPath !== '' && preg_match('/^apsess_[a-z0-9]+$/i', $sessionPath)) {
+            $panelUrl = $origin . '/' . $sessionPath;
         } else {
             $panelUrl = $origin;
         }
@@ -155,6 +175,79 @@ function rewriteResolveApiFromVps(array $vps) {
         'api_url' => $panelUrl,
         'api_key' => $apiKey,
     ];
+}
+
+function rewriteHasVpsSshCredentials(array $vps) {
+    return trim((string)($vps['ip'] ?? '')) !== ''
+        && trim((string)($vps['password'] ?? '')) !== '';
+}
+
+function rewriteShouldPreferSsh($apiUrl, array $vps) {
+    if (!rewriteHasVpsSshCredentials($vps)) {
+        return false;
+    }
+
+    $parsed = parse_url((string)$apiUrl);
+    $panelHost = strtolower(trim((string)($parsed['host'] ?? ''), '[]'));
+    $vpsIp = strtolower(trim((string)($vps['ip'] ?? ''), '[]'));
+    return $panelHost !== '' && $vpsIp !== '' && $panelHost !== $vpsIp;
+}
+
+function rewriteOpenVpsSsh(array $vps) {
+    if (!rewriteHasVpsSshCredentials($vps)) {
+        return ['ssh' => null, 'error' => 'Thiếu thông tin SSH của VPS trong vps.json.'];
+    }
+
+    $autoloadFile = __DIR__ . '/vendor/autoload.php';
+    if (!is_file($autoloadFile)) {
+        return ['ssh' => null, 'error' => 'Không tìm thấy vendor/autoload.php để sử dụng SSH.'];
+    }
+    require_once $autoloadFile;
+
+    if (!class_exists(\phpseclib3\Net\SSH2::class)) {
+        return ['ssh' => null, 'error' => 'Thư viện phpseclib3 chưa được cài đặt.'];
+    }
+
+    try {
+        $ssh = new \phpseclib3\Net\SSH2(
+            trim((string)$vps['ip']),
+            22,
+            12
+        );
+        $ssh->setTimeout(30);
+        $username = trim((string)($vps['username'] ?? '')) ?: 'root';
+        if (!$ssh->login($username, (string)$vps['password'])) {
+            return ['ssh' => null, 'error' => 'Đăng nhập SSH VPS thất bại.'];
+        }
+
+        return ['ssh' => $ssh, 'error' => ''];
+    } catch (Throwable $e) {
+        return ['ssh' => null, 'error' => 'Không kết nối được SSH VPS: ' . $e->getMessage()];
+    }
+}
+
+function rewriteVpsSshCommand($ssh, $command) {
+    $output = $ssh->exec($command . '; printf "\\n__REWRITE_EXIT:%s\\n" "$?"');
+    if (!is_string($output)
+        || !preg_match('/(?:^|\n)__REWRITE_EXIT:(\d+)\s*$/', $output, $matches)) {
+        return [
+            'success' => false,
+            'output' => trim((string)$output),
+            'error' => 'Không nhận được trạng thái lệnh từ SSH VPS.',
+        ];
+    }
+
+    $output = preg_replace('/(?:^|\n)__REWRITE_EXIT:\d+\s*$/', '', $output);
+    $exitCode = (int)$matches[1];
+    return [
+        'success' => $exitCode === 0,
+        'output' => trim((string)$output),
+        'error' => $exitCode === 0 ? '' : (trim((string)$output) ?: 'Lệnh SSH thất bại, exit code ' . $exitCode),
+    ];
+}
+
+function rewriteShellQuote($value) {
+    return "'" . str_replace("'", "'\\''", (string)$value) . "'";
 }
 
 function rewriteBuildAaPanelApiConfigFromVps(array $vps) {
@@ -309,10 +402,11 @@ function rewriteResolveVpsByDomain($cf, $domain, array $vpsList) {
         }
 
         $apiConfig = rewriteBuildAaPanelApiConfigFromVps($vps);
-        if (empty($apiConfig['panel_url']) || empty($apiConfig['api_key'])) {
+        $hasApi = !empty($apiConfig['panel_url']) && !empty($apiConfig['api_key']);
+        if (!$hasApi && !rewriteHasVpsSshCredentials($vps)) {
             return [
                 'success' => false,
-                'error' => 'VPS được chọn thiếu API URL/API Key trong vps.json',
+                'error' => 'VPS được chọn thiếu API URL/API Key và thông tin SSH trong vps.json',
             ];
         }
 
@@ -323,6 +417,7 @@ function rewriteResolveVpsByDomain($cf, $domain, array $vpsList) {
             'api_url' => $apiConfig['panel_url'],
             'api_key' => $apiConfig['api_key'],
             'api_config' => $apiConfig,
+            'api_available' => $hasApi,
         ];
     }
 
@@ -352,10 +447,11 @@ function rewriteResolveVpsByDomain($cf, $domain, array $vpsList) {
         'api_url' => $apiConfig['panel_url'] ?? '',
         'api_key' => $apiConfig['api_key'] ?? '',
     ];
-    if (empty($api['api_url']) || empty($api['api_key'])) {
+    $hasApi = !empty($api['api_url']) && !empty($api['api_key']);
+    if (!$hasApi && !rewriteHasVpsSshCredentials($vps)) {
         return [
             'success' => false,
-            'error' => 'VPS khớp nhưng thiếu API URL/API Key trong vps.json',
+            'error' => 'VPS khớp nhưng thiếu API URL/API Key và thông tin SSH trong vps.json',
             'zone_id' => $zoneId,
             'zone_name' => $zoneName,
             'origin_ip' => $originIp,
@@ -372,10 +468,29 @@ function rewriteResolveVpsByDomain($cf, $domain, array $vpsList) {
         'api_url' => $api['api_url'],
         'api_key' => $api['api_key'],
         'api_config' => $apiConfig,
+        'api_available' => $hasApi,
     ];
 }
 
-function rewriteAaPanelRequest($apiUrl, $apiKey, $endpoint, array $data = []) {
+function rewriteBuildAaPanelHeaders($apiUrl, $apiKey, array $vps = []) {
+    $headers = [
+        'x-http-token: ' . $apiKey,
+        'Content-Type: application/x-www-form-urlencoded',
+        'Accept: application/json, text/plain, */*',
+    ];
+    $parsed = parse_url((string)$apiUrl);
+    if (is_array($parsed) && !empty($parsed['host'])) {
+        $scheme = $parsed['scheme'] ?? 'https';
+        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+        $origin = $scheme . '://' . $parsed['host'] . $port;
+        $headers[] = 'Origin: ' . $origin;
+        $headers[] = 'Referer: ' . rtrim((string)$apiUrl, '/') . '/wp/toolkit';
+    }
+
+    return $headers;
+}
+
+function rewriteAaPanelRequest($apiUrl, $apiKey, $endpoint, array $data = [], array $vps = []) {
     $now = time();
     $data['request_time'] = $now;
     $data['request_token'] = md5($now . md5($apiKey));
@@ -389,10 +504,8 @@ function rewriteAaPanelRequest($apiUrl, $apiKey, $endpoint, array $data = []) {
         CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_TIMEOUT => 90,
         CURLOPT_CONNECTTIMEOUT => 15,
-        CURLOPT_HTTPHEADER => [
-            'x-http-token: ' . $apiKey,
-            'Content-Type: application/x-www-form-urlencoded',
-        ],
+        CURLOPT_HTTPHEADER => rewriteBuildAaPanelHeaders($apiUrl, $apiKey, $vps),
+        CURLOPT_COOKIE => trim((string)($vps['aapanel_cookie'] ?? '')),
     ]);
 
     $resp = curl_exec($ch);
@@ -449,7 +562,7 @@ function rewriteBuildApiUrl($apiUrl, $endpoint) {
     return $base . '/' . $ep;
 }
 
-function rewriteAaPanelRequestRaw($apiUrl, $apiKey, $endpoint, array $data = []) {
+function rewriteAaPanelRequestRaw($apiUrl, $apiKey, $endpoint, array $data = [], array $vps = []) {
     $isSaveFileBody = stripos($endpoint, 'SaveFileBody') !== false;
     $hasApsessPath = preg_match('#/apsess_[^/]+#i', (string)$apiUrl) === 1;
 
@@ -470,10 +583,8 @@ function rewriteAaPanelRequestRaw($apiUrl, $apiKey, $endpoint, array $data = [])
         CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_TIMEOUT => 90,
         CURLOPT_CONNECTTIMEOUT => 15,
-        CURLOPT_HTTPHEADER => [
-            'x-http-token: ' . $apiKey,
-            'Content-Type: application/x-www-form-urlencoded',
-        ],
+        CURLOPT_HTTPHEADER => rewriteBuildAaPanelHeaders($apiUrl, $apiKey, $vps),
+        CURLOPT_COOKIE => trim((string)($vps['aapanel_cookie'] ?? '')),
     ]);
 
     $resp = curl_exec($ch);
@@ -552,7 +663,89 @@ function rewriteSiteRowsToTable(array $rows) {
     return $table;
 }
 
-function rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint, $searchDomain = '') {
+function rewriteFetchSiteRowsViaSsh(array $vps) {
+    $connection = rewriteOpenVpsSsh($vps);
+    if (!$connection['ssh']) {
+        return [
+            'rows' => [],
+            'complete' => false,
+            'error' => $connection['error'],
+        ];
+    }
+
+    $ssh = $connection['ssh'];
+    $queries = [
+        'SELECT s.id, s.name, s.path, COALESCE(d.name, \'\') FROM sites AS s LEFT JOIN domain AS d ON d.pid = s.id ORDER BY s.id;',
+        'SELECT id, name, path, name FROM sites ORDER BY id;',
+        'SELECT name FROM sites;',
+    ];
+    $errors = [];
+
+    foreach ($queries as $query) {
+        $command = 'sqlite3 -noheader -separator ' . rewriteShellQuote('|')
+            . ' /www/server/panel/data/default.db ' . rewriteShellQuote($query) . ' 2>&1';
+        $result = rewriteVpsSshCommand($ssh, $command);
+        if (!$result['success']) {
+            $errors[] = $result['error'];
+            continue;
+        }
+
+        return [
+            'rows' => rewriteParseSshSiteRows($result['output']),
+            'complete' => true,
+            'error' => '',
+        ];
+    }
+
+    return [
+        'rows' => [],
+        'complete' => false,
+        'error' => implode(' | ', array_values(array_unique($errors))),
+    ];
+}
+
+function rewriteParseSshSiteRows($output) {
+    $rows = [];
+    foreach (preg_split('/\r\n|\r|\n/', (string)$output) as $line) {
+        if (trim($line) === '') {
+            continue;
+        }
+
+        $fields = explode('|', $line, 4);
+        if (count($fields) >= 4) {
+            [$id, $name, $path, $domain] = $fields;
+        } elseif (count($fields) >= 3) {
+            [$id, $name, $path] = $fields;
+            $domain = $name;
+        } else {
+            $name = trim((string)$fields[0]);
+            $id = '';
+            $path = '';
+            $domain = $name;
+        }
+
+        $name = trim((string)$name);
+        if ($name === '') {
+            continue;
+        }
+        $domains = array_values(array_unique(array_filter([
+            $name,
+            trim((string)$domain),
+        ])));
+        $rows[] = [
+            'id' => trim((string)$id),
+            's_id' => trim((string)$id),
+            'name' => $name,
+            'webname' => $name,
+            'path' => trim((string)$path),
+            'domain' => implode("\n", $domains),
+        ];
+    }
+
+    return $rows;
+}
+
+function rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint, $searchDomain = '', array $vps = []) {
     $pageSize = 500;
     $maxPages = 100;
     $rows = [];
@@ -569,7 +762,7 @@ function rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint, $searchDo
             $payload['search'] = $searchDomain;
         }
 
-        $response = rewriteAaPanelRequest($apiUrl, $apiKey, $endpoint, $payload);
+        $response = rewriteAaPanelRequest($apiUrl, $apiKey, $endpoint, $payload, $vps);
         if (!is_array($response)
             || (isset($response['status']) && $response['status'] === false)
             || (isset($response['success']) && $response['success'] === false)
@@ -660,16 +853,39 @@ function rewriteFindAaPanelSiteTotal($value) {
     return null;
 }
 
-function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
+function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '', array $vps = []) {
     $normalizedSearch = rewriteNormalizeDomainForVpsLookup($searchDomain);
-    $endpoints = [
+    $hasApi = trim((string)$apiUrl) !== '' && trim((string)$apiKey) !== '';
+    $endpoints = $hasApi ? [
         '/v2/site?action=get_site_list',
         '/site?action=GetSiteList',
-    ];
+    ] : [];
     $allRows = [];
     $seenRows = [];
     $errors = [];
     $lookupComplete = false;
+    if (!$hasApi) {
+        $errors[] = 'Thiếu API URL/API Key aaPanel.';
+    }
+
+    if (rewriteHasVpsSshCredentials($vps)) {
+        $sshResult = rewriteFetchSiteRowsViaSsh($vps);
+        if ($sshResult['complete']) {
+            $sshMap = rewriteBuildDomainMap(rewriteSiteRowsToTable($sshResult['rows']));
+            if ($normalizedSearch === '' || isset($sshMap[$normalizedSearch])) {
+                return [
+                    'site_table' => rewriteSiteRowsToTable($sshResult['rows']),
+                    'raw' => $sshResult['rows'],
+                    'lookup_complete' => true,
+                    'lookup_errors' => [],
+                    'lookup_method' => 'SSH SQLite',
+                ];
+            }
+            $errors[] = 'SSH SQLite: đã đọc danh sách site nhưng không tìm thấy domain.';
+        } else {
+            $errors[] = 'SSH SQLite: ' . $sshResult['error'];
+        }
+    }
 
     foreach ($endpoints as $endpoint) {
         if ($normalizedSearch !== '') {
@@ -677,7 +893,8 @@ function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
                 $apiUrl,
                 $apiKey,
                 $endpoint,
-                $normalizedSearch
+                $normalizedSearch,
+                $vps
             );
             foreach ($searchResult['rows'] as $row) {
                 $rowKey = (string)json_encode($row);
@@ -694,6 +911,7 @@ function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
                     'raw' => $searchResult['rows'],
                     'lookup_complete' => true,
                     'lookup_errors' => [],
+                    'lookup_method' => 'aaPanel API domain search',
                 ];
             }
             if ($searchResult['error'] !== '') {
@@ -701,7 +919,7 @@ function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
             }
         }
 
-        $fullResult = rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint);
+        $fullResult = rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint, '', $vps);
         foreach ($fullResult['rows'] as $row) {
             $rowKey = (string)json_encode($row);
             if (!isset($seenRows[$rowKey])) {
@@ -721,6 +939,7 @@ function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
                 'raw' => $allRows,
                 'lookup_complete' => true,
                 'lookup_errors' => [],
+                'lookup_method' => 'aaPanel API site list',
             ];
         }
     }
@@ -730,10 +949,11 @@ function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
         'raw' => $allRows,
         'lookup_complete' => $lookupComplete,
         'lookup_errors' => $lookupComplete ? [] : array_values(array_unique($errors)),
+        'lookup_method' => 'aaPanel API fallback',
     ];
 }
 
-function rewriteFindSiteInVps($apiUrl, $apiKey, $domain) {
+function rewriteFindSiteInVps($apiUrl, $apiKey, $domain, array $vps = []) {
     $normalized = rewriteNormalizeDomainForVpsLookup($domain);
     if ($normalized === '') {
         return [
@@ -743,7 +963,7 @@ function rewriteFindSiteInVps($apiUrl, $apiKey, $domain) {
         ];
     }
 
-    $siteResult = rewriteFetchSiteTable($apiUrl, $apiKey, $normalized);
+    $siteResult = rewriteFetchSiteTable($apiUrl, $apiKey, $normalized, $vps);
     $domainMap = rewriteBuildDomainMap($siteResult['site_table'] ?? []);
     return [
         'site' => $domainMap[$normalized] ?? null,
@@ -878,10 +1098,10 @@ function rewriteBuildAddWwwRequests(array $site, $wwwDomain) {
     ];
 }
 
-function rewriteAddWwwDomain($apiUrl, $apiKey, array $site, $wwwDomain) {
+function rewriteAddWwwDomain($apiUrl, $apiKey, array $site, $wwwDomain, array $vps = []) {
     $attempts = [];
     foreach (rewriteBuildAddWwwRequests($site, $wwwDomain) as $request) {
-        $response = rewriteAaPanelRequest($apiUrl, $apiKey, $request['endpoint'], $request['payload']);
+        $response = rewriteAaPanelRequest($apiUrl, $apiKey, $request['endpoint'], $request['payload'], $vps);
         $rawResponseDomain = rewriteNormalizeDomainWithWww($response['raw'] ?? '');
         $expectedDomain = rewriteNormalizeDomainWithWww($wwwDomain);
         $plainDomainSuccess = $rawResponseDomain !== ''
@@ -1166,40 +1386,201 @@ function rewriteCompactResponseForUi($response) {
     return json_encode($compact, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
-function rewriteApplyWordPressRule($apiUrl, $apiKey, array $site) {
+function rewriteApplyWordPressRuleViaSsh(array $vps, array $site) {
+    $siteName = rewriteNormalizeDomainWithWww($site['webname'] ?? ($site['domain'] ?? ''));
+    if ($siteName === '' || !preg_match('/^[a-z0-9.-]+$/i', $siteName) || strpos($siteName, '..') !== false) {
+        return [
+            'success' => false,
+            'message' => 'Tên site aaPanel không an toàn để tạo đường dẫn rewrite.',
+            'written_files' => [],
+        ];
+    }
+
+    $targets = [[
+        'path' => '/www/server/panel/vhost/rewrite/' . $siteName . '.conf',
+        'content' => rewriteGetNginxWordPressContent(),
+    ]];
+    $sitePath = trim((string)($site['path'] ?? ''));
+    if ($sitePath !== ''
+        && strpos($sitePath, '/www/wwwroot/') === 0
+        && !preg_match('#(?:^|/)\.\.(?:/|$)|[\r\n\0]#', $sitePath)) {
+        $targets[] = [
+            'path' => rtrim($sitePath, '/') . '/.htaccess',
+            'content' => rewriteGetApacheWordPressContent(),
+        ];
+    }
+
+    $connection = rewriteOpenVpsSsh($vps);
+    if (!$connection['ssh']) {
+        return [
+            'success' => false,
+            'message' => $connection['error'],
+            'written_files' => [],
+        ];
+    }
+
+    $writtenFiles = [];
+    $errors = [];
+    foreach ($targets as $target) {
+        $temporaryPath = $target['path'] . '.tmp-' . bin2hex(random_bytes(6));
+        $directory = dirname($target['path']);
+        $command = 'test -d ' . rewriteShellQuote($directory)
+            . ' && printf \'%s\' ' . rewriteShellQuote(base64_encode($target['content']))
+            . ' | base64 -d > ' . rewriteShellQuote($temporaryPath)
+            . ' && chmod 0644 ' . rewriteShellQuote($temporaryPath)
+            . ' && mv -f ' . rewriteShellQuote($temporaryPath) . ' ' . rewriteShellQuote($target['path']);
+        $result = rewriteVpsSshCommand($connection['ssh'], $command);
+        if ($result['success']) {
+            $writtenFiles[] = $target['path'];
+        } else {
+            $errors[] = $target['path'] . ': ' . $result['error'];
+        }
+    }
+
+    return [
+        'success' => !empty($writtenFiles),
+        'message' => !empty($writtenFiles)
+            ? 'Đã ghi rewrite WordPress qua SSH: ' . implode(', ', $writtenFiles)
+            : implode(' | ', $errors),
+        'written_files' => $writtenFiles,
+        'errors' => $errors,
+    ];
+}
+
+function rewriteGetAaPanelFileBody($apiUrl, $apiKey, $filePath, array $vps = []) {
+    $response = rewriteAaPanelRequestRaw(
+        $apiUrl,
+        $apiKey,
+        '/v2/files?action=GetFileBody',
+        ['path' => (string)$filePath],
+        $vps
+    );
+    $message = $response['message'] ?? null;
+    if (is_array($message) && array_key_exists('data', $message) && is_string($message['data'])) {
+        return ['success' => true, 'content' => $message['data'], 'response' => $response];
+    }
+    if (isset($response['data']) && is_string($response['data'])) {
+        return ['success' => true, 'content' => $response['data'], 'response' => $response];
+    }
+
+    return [
+        'success' => false,
+        'content' => '',
+        'response' => $response,
+        'error' => rewriteExtractResponseMessage($response),
+    ];
+}
+
+function rewriteApplyWordPressRule($apiUrl, $apiKey, array $site, array $vps = []) {
     $attempts = [];
     $requests = rewriteBuildWordPressRequests($site, 'wordpress');
     $requests = array_merge($requests, rewriteBuildSaveFileRequests($site));
-
-    foreach ($requests as $request) {
-        $useRawRequest = stripos($request['endpoint'], '/v2/files?action=SaveFileBody') !== false
-            || stripos($request['endpoint'], '/files?action=SaveFileBody') !== false;
-
-        $response = $useRawRequest
-            ? rewriteAaPanelRequestRaw($apiUrl, $apiKey, $request['endpoint'], $request['payload'])
-            : rewriteAaPanelRequest($apiUrl, $apiKey, $request['endpoint'], $request['payload']);
-
+    $preferSsh = rewriteShouldPreferSsh($apiUrl, $vps);
+    if ($preferSsh) {
         $attempts[] = [
-            'label' => $request['label'],
-            'endpoint' => $request['endpoint'],
-            'payload' => $request['payload'],
-            'response' => $response,
+            'label' => 'aaPanel API skipped: panel host differs from resolved VPS',
+            'response' => [
+                'status' => false,
+                'msg' => 'Bỏ qua API endpoint trên host khác VPS; ưu tiên SSH vào đúng VPS đã resolve.',
+            ],
         ];
+    }
 
-        if (rewriteLooksSuccess($response)) {
-            return [
-                'success' => true,
-                'message' => $response['msg'] ?? 'Đã cập nhật rewrite wordpress',
-                'attempt' => $request['label'],
+    if (!$preferSsh && trim((string)$apiUrl) !== '' && trim((string)$apiKey) !== '') {
+        foreach ($requests as $request) {
+            $useRawRequest = stripos($request['endpoint'], '/v2/files?action=SaveFileBody') !== false
+                || stripos($request['endpoint'], '/files?action=SaveFileBody') !== false;
+
+            $response = $useRawRequest
+                ? rewriteAaPanelRequestRaw($apiUrl, $apiKey, $request['endpoint'], $request['payload'], $vps)
+                : rewriteAaPanelRequest($apiUrl, $apiKey, $request['endpoint'], $request['payload'], $vps);
+
+            $attempts[] = [
+                'label' => $request['label'],
+                'endpoint' => $request['endpoint'],
+                'payload' => $request['payload'],
                 'response' => $response,
-                'attempts' => $attempts,
             ];
+
+            if ($useRawRequest) {
+                $filePath = (string)($request['payload']['path'] ?? ($request['payload']['file'] ?? ''));
+                $expectedContent = $request['payload']['data'] ?? ($request['payload']['content'] ?? null);
+                if ($filePath !== '' && is_string($expectedContent)) {
+                    $readback = rewriteGetAaPanelFileBody($apiUrl, $apiKey, $filePath, $vps);
+                    if ($readback['success'] && hash_equals($expectedContent, $readback['content'])) {
+                        $verifiedResponse = [
+                            'status' => true,
+                            'msg' => 'SaveFileBody đã được xác minh bằng GetFileBody.',
+                            'verified' => true,
+                            '_raw_url' => $response['_raw_url'] ?? '',
+                        ];
+                        $attempts[count($attempts) - 1]['response'] = $verifiedResponse;
+                        return [
+                            'success' => true,
+                            'message' => 'Đã lưu và xác minh rewrite file qua aaPanel API.',
+                            'attempt' => $request['label'] . ' + GetFileBody verify',
+                            'response' => $verifiedResponse,
+                            'attempts' => $attempts,
+                            'attempt_labels' => array_map(static function ($item) {
+                                return (string)($item['label'] ?? 'unknown');
+                            }, $attempts),
+                        ];
+                    }
+                    $attempts[count($attempts) - 1]['verification'] = $readback['success']
+                        ? 'GetFileBody trả về nội dung khác'
+                        : ($readback['error'] ?? 'GetFileBody xác minh thất bại');
+                }
+                continue;
+            }
+
+            if (rewriteLooksSuccess($response)) {
+                return [
+                    'success' => true,
+                    'message' => $response['msg'] ?? 'Đã cập nhật rewrite wordpress',
+                    'attempt' => $request['label'],
+                    'response' => $response,
+                    'attempts' => $attempts,
+                ];
+            }
+
+            if (strpos((string)($response['msg'] ?? ''), 'cURL #') === 0) {
+                break;
+            }
+            $responseMessage = strtolower((string)($response['msg'] ?? $response['message'] ?? ''));
+            if (strpos($responseMessage, 'invalid json:') === 0
+                || preg_match('/specific parameters are invalid|invalid request parameters|unauthori[sz]ed|forbidden|permission|token|ip.*(match|allow|whitelist)|api.*(disabled|closed)/', $responseMessage)) {
+                break;
+            }
         }
     }
 
     $last = end($attempts);
     $lastResponse = $last['response'] ?? [];
     $lastMessage = rewriteExtractResponseMessage(is_array($lastResponse) ? $lastResponse : []);
+    if (rewriteHasVpsSshCredentials($vps)) {
+        $sshResult = rewriteApplyWordPressRuleViaSsh($vps, $site);
+        if ($sshResult['success']) {
+            $sshResponse = [
+                'status' => true,
+                'msg' => $sshResult['message'],
+                'method' => 'ssh-direct-file-write',
+            ];
+            return [
+                'success' => true,
+                'message' => $sshResult['message'],
+                'attempt' => 'SSH direct rewrite file fallback',
+                'response' => $sshResponse,
+                'attempts' => $attempts,
+                'attempt_labels' => array_merge(
+                    array_map(static function ($item) {
+                        return (string)($item['label'] ?? 'unknown');
+                    }, $attempts),
+                    ['SSH direct rewrite file fallback']
+                ),
+            ];
+        }
+        $lastMessage .= ' | SSH fallback: ' . $sshResult['message'];
+    }
 
     $attemptLabels = array_map(static function ($item) {
         return (string)($item['label'] ?? 'unknown');
@@ -1208,14 +1589,16 @@ function rewriteApplyWordPressRule($apiUrl, $apiKey, array $site) {
     return [
         'success' => false,
         'message' => $lastMessage,
-        'attempt' => $last['label'] ?? 'unknown',
+        'attempt' => $preferSsh ? 'SSH direct rewrite failed' : ($last['label'] ?? 'unknown'),
         'response' => $lastResponse,
-        'attempt_labels' => $attemptLabels,
+        'attempt_labels' => rewriteHasVpsSshCredentials($vps)
+            ? array_merge($attemptLabels, ['SSH direct rewrite file fallback'])
+            : $attemptLabels,
         'attempts' => $attempts,
     ];
 }
 
-function rewriteApplyWordPressRuleDirect($apiUrl, $apiKey, $domain) {
+function rewriteApplyWordPressRuleDirect($apiUrl, $apiKey, $domain, array $vps = []) {
     $domain = rewriteNormalizeDomain((string)$domain);
     if ($domain === '') {
         return [
@@ -1232,7 +1615,7 @@ function rewriteApplyWordPressRuleDirect($apiUrl, $apiKey, $domain) {
         'domain' => $domain,
         'webname' => $domain,
         'path' => '',
-    ]);
+    ], $vps);
 }
 
 function rewriteJsonResponse(array $payload, int $httpCode = 200) {
@@ -1394,7 +1777,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             }
 
             $resolved++;
-            $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key'], $domain);
+            $siteResult = rewriteFetchSiteTable(
+                $resolve['api_url'],
+                $resolve['api_key'],
+                $domain,
+                $resolve['vps'] ?? []
+            );
             $siteTable = $siteResult['site_table'] ?? [];
             $domainMap = rewriteBuildDomainMap($siteTable);
 
@@ -1407,7 +1795,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                     'vps_ip' => $resolve['origin_ip'] ?? '',
                     'api_url' => $resolve['api_config']['panel_url'] ?? '',
                     'api_endpoint' => $resolve['api_config']['save_file_endpoint'] ?? '',
-                    'msg' => 'B1: CF => IP ' . ($resolve['origin_ip'] ?? '') . ' | B2: tạo API config từ VPS thành công',
+                    'msg' => 'B1: CF => IP ' . ($resolve['origin_ip'] ?? '')
+                        . ' | B2: tìm site qua ' . ($siteResult['lookup_method'] ?? 'aaPanel API'),
                 ];
             } else {
                 $lookupComplete = !empty($siteResult['lookup_complete']);
@@ -1485,14 +1874,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
             $vpsIp = trim((string)($resolve['origin_ip'] ?? ''));
             if (!isset($siteMapByVpsIp[$vpsIp])) {
-                $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key']);
+                $siteResult = rewriteFetchSiteTable(
+                    $resolve['api_url'],
+                    $resolve['api_key'],
+                    '',
+                    $resolve['vps'] ?? []
+                );
                 $siteMapByVpsIp[$vpsIp] = rewriteBuildDomainMap($siteResult['site_table'] ?? []);
                 $siteLookupCompleteByVpsIp[$vpsIp] = !empty($siteResult['lookup_complete']);
             }
 
             $domainMap = $siteMapByVpsIp[$vpsIp];
             if (!isset($domainMap[$lookupDomain])) {
-                $lookupResult = rewriteFindSiteInVps($resolve['api_url'], $resolve['api_key'], $lookupDomain);
+                $lookupResult = rewriteFindSiteInVps(
+                    $resolve['api_url'],
+                    $resolve['api_key'],
+                    $lookupDomain,
+                    $resolve['vps'] ?? []
+                );
                 $siteLookupCompleteByVpsIp[$vpsIp] = $siteLookupCompleteByVpsIp[$vpsIp]
                     || !empty($lookupResult['lookup_complete']);
                 if (is_array($lookupResult['site'])) {
@@ -1532,7 +1931,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 continue;
             }
 
-            $addResult = rewriteAddWwwDomain($resolve['api_url'], $resolve['api_key'], $site, $wwwDomain);
+            $addResult = rewriteAddWwwDomain(
+                $resolve['api_url'],
+                $resolve['api_key'],
+                $site,
+                $wwwDomain,
+                $resolve['vps'] ?? []
+            );
             if ($addResult['success']) {
                 $successCount++;
                 $results[] = [
@@ -1610,7 +2015,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
             $vpsIp = trim((string)($resolve['origin_ip'] ?? ''));
             if (!isset($domainMapByVpsIp[$vpsIp])) {
-                $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key']);
+                $siteResult = rewriteFetchSiteTable(
+                    $resolve['api_url'],
+                    $resolve['api_key'],
+                    '',
+                    $resolve['vps'] ?? []
+                );
                 $siteTable = $siteResult['site_table'] ?? [];
                 $domainMapByVpsIp[$vpsIp] = rewriteBuildDomainMap($siteTable);
                 $siteLookupCompleteByVpsIp[$vpsIp] = !empty($siteResult['lookup_complete']);
@@ -1619,7 +2029,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             $domainMap = $domainMapByVpsIp[$vpsIp];
             $lookupResult = ['lookup_errors' => []];
             if (!isset($domainMap[$domain])) {
-                $lookupResult = rewriteFindSiteInVps($resolve['api_url'], $resolve['api_key'], $domain);
+                $lookupResult = rewriteFindSiteInVps(
+                    $resolve['api_url'],
+                    $resolve['api_key'],
+                    $domain,
+                    $resolve['vps'] ?? []
+                );
                 $siteLookupCompleteByVpsIp[$vpsIp] = $siteLookupCompleteByVpsIp[$vpsIp]
                     || !empty($lookupResult['lookup_complete']);
                 if (is_array($lookupResult['site'])) {
@@ -1641,7 +2056,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                     continue;
                 }
 
-                $directResult = rewriteApplyWordPressRuleDirect($resolve['api_url'], $resolve['api_key'], $domain);
+                $directResult = rewriteApplyWordPressRuleDirect(
+                    $resolve['api_url'],
+                    $resolve['api_key'],
+                    $domain,
+                    $resolve['vps'] ?? []
+                );
                 if ($directResult['success']) {
                     $successCount++;
                     $results[] = [
@@ -1673,7 +2093,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
             $site = $domainMap[$domain];
             $site['domain'] = $domain;
-            $applyResult = rewriteApplyWordPressRule($resolve['api_url'], $resolve['api_key'], $site);
+            $applyResult = rewriteApplyWordPressRule(
+                $resolve['api_url'],
+                $resolve['api_key'],
+                $site,
+                $resolve['vps'] ?? []
+            );
 
             if ($applyResult['success']) {
                 $successCount++;

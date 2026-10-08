@@ -401,13 +401,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             background: rgba(20, 30, 20, 0.92);
             border-radius: 18px;
             box-shadow: 0 8px 32px 0 rgba(0,255,0,0.10), 0 1.5px 8px 0 rgba(0,255,0,0.08);
-            padding: 2.5rem 2rem 2rem 2rem;
+            padding: 1.25rem;
             margin-bottom: 2rem;
         }
         
         .redirect-main {
             width: 100%;
-            padding: 1.5rem 1rem 1.5rem 1rem;
+            padding: 0.5rem;
             min-height: 60vh;
             max-height: none;
             height: auto;
@@ -470,15 +470,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         /* Action Bar Styling */
         .action-bar {
             background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #00ff00;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 255, 0, 0.45);
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
             display: flex;
-            gap: 1rem;
+            gap: 0.6rem;
             flex-wrap: wrap;
-            justify-content: center;
-            box-shadow: 0 0 25px rgba(0, 255, 0, 0.3);
+            justify-content: flex-start;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.15);
         }
         
         .action-btn {
@@ -500,6 +500,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             justify-content: center;
             text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
             letter-spacing: 0.5px;
+        }
+
+        .redirect-main .action-btn {
+            min-width: 0;
+            padding: 0.55rem 0.9rem;
+            font-size: 0.8rem;
         }
         
         .action-btn:hover {
@@ -572,9 +578,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             background: rgba(0, 0, 0, 0.8);
             border: 1px solid rgba(0, 255, 0, 0.4);
             border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 12px rgba(0, 255, 0, 0.15);
+        }
+
+        .redirect-input-column {
+            min-width: 0;
+        }
+
+        .redirect-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem 1rem;
+        }
+
+        .redirect-options .form-check {
+            margin: 0;
+        }
+
+        .redirect-options .form-text {
+            margin-left: 1.5rem;
+        }
+
+        #redirectPairsInput,
+        #domainsInput {
+            min-height: 13rem;
+            resize: vertical;
+        }
+
+        @media (max-width: 767px) {
+            .redirect-layout {
+                padding: 0.75rem;
+            }
+
+            .redirect-main {
+                padding: 0.25rem;
+            }
+
+            .input-section {
+                padding: 0.85rem;
+            }
+
+            .redirect-options {
+                grid-template-columns: 1fr;
+            }
         }
         
         .form-floating > label {
@@ -847,121 +895,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <div class="container-fluid mt-4 hud-container p-0">
         <div class="redirect-layout">
             <!-- Main Content -->
-            <div class="redirect-main">        
-        <!-- Action Bar -->
-        <div class="action-bar">
-            <button type="button" class="action-btn btn-check" id="checkDomainsBtn">
-                Kiểm tra Zones
-            </button>
-            <button type="button" class="action-btn btn-check" id="checkRulesetsBtn">
-                Check Rules cũ
-            </button>
-            <button type="button" class="action-btn btn-check" id="checkRule301Btn">
-                Check Rule 301
-            </button>
-            <button type="button" class="action-btn btn-create" id="createRedirectsBtn">
-                Tạo 301 Redirect
-            </button>
-            <button type="button" class="action-btn btn-delete" id="deleteRulesetsBtn">
-                Xóa Rules cũ
-            </button>
-            <button type="button" class="action-btn btn-export" id="exportResultsBtn">
-                Xuất kết quả
-            </button>
-        </div>
-        
-        <!-- Input Section -->
-        <div class="input-section">
-            <div class="mb-3">
-                <label for="redirectPairsInput" class="form-label">Dán danh sách chuyển hướng</label>
-                <textarea
-                    class="form-control"
-                    id="redirectPairsInput"
-                    rows="4"
-                    placeholder="domain-cu.com »»» domain-moi.com (mỗi chuyển hướng một dòng)"
-                ></textarea>
-                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                    <button type="button" class="btn btn-outline-primary" id="convertRedirectPairsBtn">
-                        Chuyển vào form 301
-                    </button>
-                    <small class="text-muted">Hỗ trợ “domain »»» URL đích”, “domain => URL đích” hoặc nhóm domain kết thúc bằng “Trỏ sang: URL đích” / “=>> URL đích”.</small>
-                </div>
-                <small class="text-primary d-block mt-1" id="redirectPairsStatus" aria-live="polite"></small>
-            </div>
-            <section class="mb-3" id="redirectBatchPreview" aria-live="polite" hidden>
-                <div id="redirectBatchPreviewContent"></div>
-            </section>
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="mb-3">
-                        <textarea 
-                            class="form-control" 
-                            id="domainsInput" 
-                            style="height: 120px"
-                            placeholder="Nhập danh sách domain (mỗi domain một dòng)..."
-                        ></textarea>
-                        <div class="domain-count-wrapper mt-1">
-                            <small class="text-muted">Domain count: <span class="domain-count" id="domainCount">0</span></small>
+            <div class="redirect-main">
+                <div class="input-section">
+                    <div class="row g-3">
+                        <div class="col-lg-6 redirect-input-column">
+                            <label for="redirectPairsInput" class="form-label">Dán danh sách chuyển hướng</label>
+                            <textarea
+                                class="form-control"
+                                id="redirectPairsInput"
+                                rows="8"
+                                placeholder="Dán danh sách domain và URL đích tại đây..."
+                            ></textarea>
+                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                <button type="button" class="btn btn-outline-primary" id="convertRedirectPairsBtn">
+                                    Chuyển vào form 301
+                                </button>
+                                <small class="text-muted">Có thể dán nhiều nhóm.</small>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                Hỗ trợ “domain »»» URL đích”, “domain => URL đích”, “Trỏ sang: URL đích”, “=>> URL đích” hoặc danh sách domain rồi đến mã trạng thái và domain đích.
+                            </small>
+                            <small class="text-primary d-block mt-1" id="redirectPairsStatus" aria-live="polite"></small>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <input 
-                            type="url" 
-                            class="form-control" 
-                            id="targetUrlInput" 
-                            placeholder="https://example.com"
-                        >
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="mb-3">
-                        <select class="form-control" id="statusCodeSelect">
-                            <option value="301">301 - Permanent Redirect</option>
-                            <option value="302">302 - Temporary Redirect</option>
-                            <option value="307">307 - Temporary Redirect (Method Preserved)</option>
-                            <option value="308">308 - Permanent Redirect (Method Preserved)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-9">
-                    <div class="d-flex gap-4 align-items-center" style="padding-top: 1rem;">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="preservePathCheck" checked>
-                            <label class="form-check-label" for="preservePathCheck">
-                                Giữ nguyên đường dẫn (Path)
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="preserveQueryCheck" checked>
-                            <label class="form-check-label" for="preserveQueryCheck">
-                                Giữ nguyên Query parameters
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="deleteOldCheck" checked>
-                            <label class="form-check-label" for="deleteOldCheck">
-                                Xóa redirect rules cũ và toàn bộ Page Rules trước khi tạo
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="allIncomingRequestsCheck" checked>
-                            <label class="form-check-label" for="allIncomingRequestsCheck">
-                                All incoming requests (Tất cả requests)
-                            </label>
-                            <div class="form-text text-muted small">
-                                Khi bật: Expression = "true" (redirect mọi request). Tắt: Chỉ redirect domain match.
+
+                        <div class="col-lg-6 redirect-input-column">
+                            <label for="domainsInput" class="form-label">Domain nguồn</label>
+                            <textarea
+                                class="form-control"
+                                id="domainsInput"
+                                placeholder="Một domain mỗi dòng; được điền tự động khi chuyển danh sách..."
+                            ></textarea>
+                            <div class="domain-count-wrapper mt-1">
+                                <small class="text-muted">Domain count: <span class="domain-count" id="domainCount">0</span></small>
+                            </div>
+
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-8">
+                                    <label for="targetUrlInput" class="form-label small text-muted">URL đích</label>
+                                    <input
+                                        type="url"
+                                        class="form-control"
+                                        id="targetUrlInput"
+                                        placeholder="https://example.com"
+                                    >
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="statusCodeSelect" class="form-label small text-muted">Mã redirect</label>
+                                    <select class="form-control" id="statusCodeSelect">
+                                        <option value="301">301 - Permanent</option>
+                                        <option value="302">302 - Temporary</option>
+                                        <option value="307">307 - Temporary (Preserved)</option>
+                                        <option value="308">308 - Permanent (Preserved)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="redirect-options mt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="preservePathCheck" checked>
+                                    <label class="form-check-label" for="preservePathCheck">Giữ nguyên Path</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="preserveQueryCheck" checked>
+                                    <label class="form-check-label" for="preserveQueryCheck">Giữ nguyên Query parameters</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="deleteOldCheck" checked>
+                                    <label class="form-check-label" for="deleteOldCheck">Xóa rules cũ và Page Rules trước khi tạo</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allIncomingRequestsCheck" checked>
+                                    <label class="form-check-label" for="allIncomingRequestsCheck">All incoming requests</label>
+                                    <div class="form-text small">Bật: redirect tất cả request. Tắt: chỉ redirect domain khớp.</div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-        </div>
+                <div class="action-bar">
+                    <button type="button" class="action-btn btn-create" id="createRedirectsBtn">
+                        Tạo 301 Redirect
+                    </button>
+                    <button type="button" class="action-btn btn-check" id="checkDomainsBtn">
+                        Kiểm tra Zones
+                    </button>
+                    <button type="button" class="action-btn btn-check" id="checkRulesetsBtn">
+                        Check Rules cũ
+                    </button>
+                    <button type="button" class="action-btn btn-check" id="checkRule301Btn">
+                        Check Rule 301
+                    </button>
+                    <button type="button" class="action-btn btn-delete" id="deleteRulesetsBtn">
+                        Xóa Rules cũ
+                    </button>
+                    <button type="button" class="action-btn btn-export" id="exportResultsBtn">
+                        Xuất kết quả
+                    </button>
+                </div>
         
         <!-- Progress Section -->
         <div class="progress-section" id="progressSection" style="display: none;">
@@ -1056,18 +1087,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 document.getElementById('domainsInput').addEventListener('input', () => {
                     this.redirectBatches = null;
                     document.getElementById('redirectPairsStatus').textContent = '';
-                    this.clearRedirectBatchPreview();
                     this.updateDomainCount();
                 });
                 document.getElementById('targetUrlInput').addEventListener('input', () => {
                     this.redirectBatches = null;
                     document.getElementById('redirectPairsStatus').textContent = '';
-                    this.clearRedirectBatchPreview();
                 });
                 document.getElementById('redirectPairsInput').addEventListener('input', () => {
                     this.redirectBatches = null;
                     document.getElementById('redirectPairsStatus').textContent = '';
-                    this.clearRedirectBatchPreview();
                 });
                 document.getElementById('convertRedirectPairsBtn').addEventListener('click', () => {
                     this.convertRedirectPairs();
@@ -1139,6 +1167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 const batches = [];
                 const errors = [];
                 let pendingDomains = [];
+                let awaitingTargetAfterStatus = false;
+                let selectedStatusCode = null;
                 const lines = input.split(/\r?\n/);
 
                 const normalizeTarget = (rawTarget, lineNumber) => {
@@ -1186,9 +1216,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 lines.forEach((line, index) => {
                     if (!line.trim()) return;
 
-                    const groupTarget = line.match(/Trỏ\s*sang\s*:\s*(.+)$/i);
                     if (/^[=\s>]+$/.test(line.trim())) return;
                     if (/^\s*\[[^\]]+\]\s*$/.test(line)) return;
+
+                    if (awaitingTargetAfterStatus) {
+                        addBatch(pendingDomains, line.trim(), index + 1);
+                        pendingDomains = [];
+                        awaitingTargetAfterStatus = false;
+                        return;
+                    }
+
+                    const statusMarker = line.trim().match(/^(301|302|307|308)$/);
+                    if (statusMarker) {
+                        if (pendingDomains.length === 0) {
+                            errors.push(`Dòng ${index + 1}: cần có domain nguồn trước mã trạng thái ${statusMarker[1]}.`);
+                            return;
+                        }
+                        awaitingTargetAfterStatus = true;
+                        selectedStatusCode = statusMarker[1];
+                        return;
+                    }
+
+                    const groupTarget = line.match(/Trỏ\s*sang\s*:\s*(.+)$/i);
 
                     const groupArrowTarget = line.match(/^\s*=+\s*>{1,2}\s*(.+?)\s*$/);
                     if (groupArrowTarget) {
@@ -1253,7 +1302,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 });
 
                 if (pendingDomains.length) {
-                    errors.push('Nhóm domain cuối chưa có dòng “Trỏ sang: URL đích”.');
+                    errors.push(awaitingTargetAfterStatus
+                        ? 'Thiếu domain đích sau mã trạng thái.'
+                        : 'Nhóm domain cuối chưa có dòng “Trỏ sang: URL đích”.');
                 }
                 if (batches.length === 0 && errors.length === 0) {
                     errors.push('Danh sách không có nhóm chuyển hướng hợp lệ.');
@@ -1272,10 +1323,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 this.redirectBatches = batches;
                 document.getElementById('domainsInput').value = batches[0].domains.join('\n');
                 document.getElementById('targetUrlInput').value = batches[0].target;
-                document.getElementById('statusCodeSelect').value = '301';
+                document.getElementById('statusCodeSelect').value = selectedStatusCode || '301';
                 this.updateDomainCount();
                 const totalDomains = batches.reduce((total, batch) => total + batch.domains.length, 0);
-                this.renderRedirectBatchPreview(batches);
                 document.getElementById('redirectPairsStatus').textContent =
                     `Đã nạp ${batches.length} nhóm, ${totalDomains} domain. Nhấn “Tạo 301 Redirect” để chạy tất cả nhóm.`;
 
@@ -1287,30 +1337,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 });
             }
 
-            renderRedirectBatchPreview(batches) {
-                const preview = document.getElementById('redirectBatchPreview');
-                const content = document.getElementById('redirectBatchPreviewContent');
-                content.innerHTML = batches.map((batch, index) => `
-                    <article class="card mb-2">
-                        <div class="card-header d-flex flex-wrap justify-content-between gap-2">
-                            <strong>Nhóm ${index + 1} — ${batch.domains.length} domain</strong>
-                            <span>Đích: <code>${this.escapeHtml(batch.target)}</code></span>
-                        </div>
-                        <div class="card-body py-2">
-                            <ul class="mb-0">
-                                ${batch.domains.map(domain => `<li><code>${this.escapeHtml(domain)}</code></li>`).join('')}
-                            </ul>
-                        </div>
-                    </article>
-                `).join('');
-                preview.hidden = false;
-            }
-
-            clearRedirectBatchPreview() {
-                document.getElementById('redirectBatchPreview').hidden = true;
-                document.getElementById('redirectBatchPreviewContent').textContent = '';
-            }
-            
             getDomains() {
                 const text = document.getElementById('domainsInput').value.trim();
                 return text ? text.split('\n').map(d => d.trim()).filter(d => d) : [];
