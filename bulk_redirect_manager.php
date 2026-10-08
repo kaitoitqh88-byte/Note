@@ -214,10 +214,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $allIncomingRequests
                     );
 
+                    $createdDomain = $result['processed_domains'][0] ?? null;
+                    $cachePurge = null;
+                    if (!empty($createdDomain['success']) && !empty($createdDomain['new_ruleset_created'])) {
+                        try {
+                            $purgeResult = $api->purgeCache($zoneId);
+                            $cachePurge = [
+                                'success' => !empty($purgeResult['success']),
+                                'message' => !empty($purgeResult['success'])
+                                    ? 'Purge Cache thành công'
+                                    : ($purgeResult['errors'][0]['message'] ?? 'Cloudflare không xác nhận Purge Cache thành công')
+                            ];
+                        } catch (Exception $purgeError) {
+                            $cachePurge = [
+                                'success' => false,
+                                'message' => $purgeError->getMessage()
+                            ];
+                        }
+                    }
+
                     echo json_encode([
                         'success' => (bool)($result['success'] ?? false),
                         'domain' => $domain,
                         'zone_id' => $zoneId,
+                        'cache_purge' => $cachePurge,
                         'result' => $result
                     ]);
                     break;
@@ -852,6 +872,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         <!-- Input Section -->
         <div class="input-section">
+            <div class="mb-3">
+                <label for="redirectPairsInput" class="form-label">Dán danh sách chuyển hướng</label>
+                <textarea
+                    class="form-control"
+                    id="redirectPairsInput"
+                    rows="4"
+                    placeholder="domain-cu.com »»» domain-moi.com (mỗi chuyển hướng một dòng)"
+                ></textarea>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                    <button type="button" class="btn btn-outline-primary" id="convertRedirectPairsBtn">
+                        Chuyển vào form 301
+                    </button>
+                    <small class="text-muted">Hỗ trợ “domain »»» URL đích”, “domain => URL đích” hoặc nhóm domain kết thúc bằng “Trỏ sang: URL đích”.</small>
+                </div>
+                <small class="text-primary d-block mt-1" id="redirectPairsStatus" aria-live="polite"></small>
+            </div>
+            <section class="mb-3" id="redirectBatchPreview" aria-live="polite" hidden>
+                <div id="redirectBatchPreviewContent"></div>
+            </section>
             <div class="row">
                 <div class="col-md-8">
                     <div class="mb-3">
@@ -1007,6 +1046,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             constructor() {
                 this.isProcessing = false;
                 this.currentResults = null;
+                this.redirectBatches = null;
                 this.initializeEventListeners();
                 this.updateDomainCount();
             }
@@ -1014,7 +1054,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             initializeEventListeners() {
                 // Domain count update
                 document.getElementById('domainsInput').addEventListener('input', () => {
+                    this.redirectBatches = null;
+                    document.getElementById('redirectPairsStatus').textContent = '';
+                    this.clearRedirectBatchPreview();
                     this.updateDomainCount();
+                });
+                document.getElementById('targetUrlInput').addEventListener('input', () => {
+                    this.redirectBatches = null;
+                    document.getElementById('redirectPairsStatus').textContent = '';
+                    this.clearRedirectBatchPreview();
+                });
+                document.getElementById('redirectPairsInput').addEventListener('input', () => {
+                    this.redirectBatches = null;
+                    document.getElementById('redirectPairsStatus').textContent = '';
+                    this.clearRedirectBatchPreview();
+                });
+                document.getElementById('convertRedirectPairsBtn').addEventListener('click', () => {
+                    this.convertRedirectPairs();
                 });
                 // Action buttons
                 document.getElementById('checkDomainsBtn').addEventListener('click', () => {
@@ -1066,10 +1122,191 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 const domains = this.getDomains();
                 document.getElementById('domainCount').textContent = domains.length;
             }
+
+            convertRedirectPairs() {
+                this.redirectBatches = null;
+                const input = document.getElementById('redirectPairsInput').value.trim();
+                if (!input) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Chưa có dữ liệu',
+                        text: 'Vui lòng dán danh sách domain và URL đích.',
+                        confirmButtonColor: '#667eea'
+                    });
+                    return;
+                }
+
+                const batches = [];
+                const errors = [];
+                let pendingDomains = [];
+                const lines = input.split(/\r?\n/);
+
+                const normalizeTarget = (rawTarget, lineNumber) => {
+                    const target = /^[a-z][a-z\d+.-]*:\/\//i.test(rawTarget)
+                        ? rawTarget
+                        : `https://${rawTarget}`;
+                    try {
+                        const parsedTarget = new URL(target);
+                        if (!['http:', 'https:'].includes(parsedTarget.protocol) || !parsedTarget.hostname) {
+                            throw new Error('Unsupported protocol');
+                        }
+                        return parsedTarget.href;
+                    } catch (error) {
+                        errors.push(`Dòng ${lineNumber}: URL đích không hợp lệ; chỉ hỗ trợ HTTP hoặc HTTPS.`);
+                        return null;
+                    }
+                };
+
+                const isValidSourceDomain = domain => {
+                    if (!domain || /^(?:https?:\/\/|\/)|[\s»=]/i.test(domain)) return false;
+                    try {
+                        const parsedDomain = new URL(`https://${domain}`);
+                        return Boolean(
+                            parsedDomain.hostname &&
+                            !parsedDomain.username &&
+                            !parsedDomain.password &&
+                            !parsedDomain.port &&
+                            parsedDomain.pathname === '/' &&
+                            !parsedDomain.search &&
+                            !parsedDomain.hash
+                        );
+                    } catch (error) {
+                        return false;
+                    }
+                };
+
+                const addBatch = (domains, rawTarget, lineNumber) => {
+                    const target = normalizeTarget(rawTarget, lineNumber);
+                    if (target && domains.length) {
+                        batches.push({ domains: [...domains], target });
+                    }
+                };
+
+                lines.forEach((line, index) => {
+                    if (!line.trim()) return;
+
+                    const groupTarget = line.match(/Trỏ\s*sang\s*:\s*(.+)$/i);
+                    if (/^[=\s>]+$/.test(line.trim())) return;
+                    if (/^\s*\[[^\]]+\]\s*$/.test(line)) return;
+
+                    if (groupTarget) {
+                        if (pendingDomains.length === 0) {
+                            errors.push(`Dòng ${index + 1}: không có domain nguồn trước dòng “Trỏ sang”.`);
+                            return;
+                        }
+                        addBatch(pendingDomains, groupTarget[1].trim(), index + 1);
+                        pendingDomains = [];
+                        return;
+                    }
+
+                    const arrowParts = line.split('=>');
+                    if (arrowParts.length > 1) {
+                        const sourceDomain = arrowParts[0].trim();
+                        const rawTarget = arrowParts.slice(1).join('=>').trim();
+                        if (arrowParts.length !== 2 || !isValidSourceDomain(sourceDomain) || !rawTarget) {
+                            errors.push(`Dòng ${index + 1}: định dạng “domain => URL đích” không hợp lệ.`);
+                            return;
+                        }
+                        const sourceDomains = [...pendingDomains, sourceDomain];
+                        addBatch(sourceDomains, rawTarget, index + 1);
+                        pendingDomains = [];
+                        return;
+                    }
+
+                    const parts = line.split('»»»');
+                    if (parts.length > 1) {
+                        if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+                            errors.push(`Dòng ${index + 1}: định dạng “domain »»» URL đích” không hợp lệ.`);
+                            return;
+                        }
+                        if (pendingDomains.length) {
+                            errors.push(`Dòng ${index + 1}: hãy kết thúc nhóm domain trước bằng “Trỏ sang: URL đích”.`);
+                            return;
+                        }
+                        addBatch([parts[0].trim()], parts[1].trim(), index + 1);
+                        return;
+                    }
+
+                    const domain = line.trim();
+                    if (!isValidSourceDomain(domain)) {
+                        errors.push(`Dòng ${index + 1}: domain nguồn không hợp lệ.`);
+                        return;
+                    }
+                    pendingDomains.push(domain);
+                });
+
+                if (pendingDomains.length) {
+                    errors.push('Nhóm domain cuối chưa có dòng “Trỏ sang: URL đích”.');
+                }
+                if (batches.length === 0 && errors.length === 0) {
+                    errors.push('Danh sách không có nhóm chuyển hướng hợp lệ.');
+                }
+
+                if (errors.length > 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Không thể chuyển danh sách',
+                        text: errors.join('\n'),
+                        confirmButtonColor: '#667eea'
+                    });
+                    return;
+                }
+
+                this.redirectBatches = batches;
+                document.getElementById('domainsInput').value = batches[0].domains.join('\n');
+                document.getElementById('targetUrlInput').value = batches[0].target;
+                document.getElementById('statusCodeSelect').value = '301';
+                this.updateDomainCount();
+                const totalDomains = batches.reduce((total, batch) => total + batch.domains.length, 0);
+                this.renderRedirectBatchPreview(batches);
+                document.getElementById('redirectPairsStatus').textContent =
+                    `Đã nạp ${batches.length} nhóm, ${totalDomains} domain. Nhấn “Tạo 301 Redirect” để chạy tất cả nhóm.`;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã chuyển vào form 301',
+                    text: `Đã nạp ${batches.length} nhóm, tổng cộng ${totalDomains} domain nguồn.`,
+                    confirmButtonColor: '#667eea'
+                });
+            }
+
+            renderRedirectBatchPreview(batches) {
+                const preview = document.getElementById('redirectBatchPreview');
+                const content = document.getElementById('redirectBatchPreviewContent');
+                content.innerHTML = batches.map((batch, index) => `
+                    <article class="card mb-2">
+                        <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                            <strong>Nhóm ${index + 1} — ${batch.domains.length} domain</strong>
+                            <span>Đích: <code>${this.escapeHtml(batch.target)}</code></span>
+                        </div>
+                        <div class="card-body py-2">
+                            <ul class="mb-0">
+                                ${batch.domains.map(domain => `<li><code>${this.escapeHtml(domain)}</code></li>`).join('')}
+                            </ul>
+                        </div>
+                    </article>
+                `).join('');
+                preview.hidden = false;
+            }
+
+            clearRedirectBatchPreview() {
+                document.getElementById('redirectBatchPreview').hidden = true;
+                document.getElementById('redirectBatchPreviewContent').textContent = '';
+            }
             
             getDomains() {
                 const text = document.getElementById('domainsInput').value.trim();
                 return text ? text.split('\n').map(d => d.trim()).filter(d => d) : [];
+            }
+
+            escapeHtml(value) {
+                return String(value).replace(/[&<>"']/g, character => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                })[character]);
             }
             
             log(message, type = 'info') {
@@ -1274,9 +1511,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             async createBulkRedirects() {
                 const domains = this.getDomains();
                 const targetUrl = document.getElementById('targetUrlInput').value.trim();
+                const batches = this.redirectBatches || [{ domains, target: targetUrl }];
                 const allIncomingRequests = document.getElementById('allIncomingRequestsCheck').checked;
                 
-                if (domains.length === 0) {
+                const totalDomains = batches.reduce((total, batch) => total + batch.domains.length, 0);
+                if (totalDomains === 0) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Không có domain',
@@ -1286,7 +1525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     return;
                 }
                 
-                if (!targetUrl) {
+                if (!this.redirectBatches && !targetUrl) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Thiếu URL đích',
@@ -1301,8 +1540,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     title: 'Xác nhận tạo Redirect',
                     html: `
                         <div class="text-start">
-                            <p><strong>Số domain:</strong> ${domains.length}</p>
-                            <p><strong>URL đích:</strong> ${targetUrl}</p>
+                            <p><strong>Số nhóm:</strong> ${batches.length}</p>
+                            <p><strong>Tổng domain:</strong> ${totalDomains}</p>
+                            <div class="text-start border rounded p-2 mb-3" style="max-height: 40vh; overflow-y: auto;">
+                                ${batches.map((batch, index) => `
+                                    <div class="mb-3">
+                                        <strong>Nhóm ${index + 1} (${batch.domains.length} domain)</strong><br>
+                                        Đích: <code>${this.escapeHtml(batch.target)}</code>
+                                        <ul class="mb-0">
+                                            ${batch.domains.map(domain => `<li><code>${this.escapeHtml(domain)}</code></li>`).join('')}
+                                        </ul>
+                                    </div>
+                                `).join('')}
+                            </div>
                             <p><strong>All incoming requests:</strong> ${allIncomingRequests ? 'Có (expression: true)' : 'Không (domain matching)'}</p>
                             <p><strong>Mã trạng thái:</strong> ${document.getElementById('statusCodeSelect').value}</p>
                             <p><strong>Giữ nguyên path:</strong> ${document.getElementById('preservePathCheck').checked ? 'Có' : 'Không'}</p>
@@ -1321,9 +1571,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!confirm.isConfirmed) return;
                 
                 this.setProcessing(true);
-                this.log(`🚀 Bắt đầu tạo bulk redirect cho ${domains.length} domain(s)...`, 'info');
+                this.log(`🚀 Bắt đầu tạo ${batches.length} nhóm redirect cho ${totalDomains} domain(s)...`, 'info');
                 this.showProgress(true);
-                this.updateProgress(0, domains.length);
+                this.updateProgress(0, totalDomains);
                 
                 const startTime = Date.now();
                 
@@ -1336,78 +1586,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     let totalOldDeleted = 0;
                     let totalOldPageRulesDeleted = 0;
                     let totalNewCreated = 0;
+                    let processedCount = 0;
 
-                    for (let i = 0; i < domains.length; i++) {
-                        const domain = domains[i];
+                    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+                        const batch = batches[batchIndex];
+                        this.log(`📦 Nhóm ${batchIndex + 1}/${batches.length} → ${this.escapeHtml(batch.target)} (${batch.domains.length} domain)`, 'info');
 
-                        try {
-                            const response = await this.requestSingleDomain('create', domain, {
-                                target_url: targetUrl,
-                                status_code: document.getElementById('statusCodeSelect').value,
-                                preserve_path: document.getElementById('preservePathCheck').checked ? '1' : '',
-                                preserve_query: document.getElementById('preserveQueryCheck').checked ? '1' : '',
-                                delete_old: document.getElementById('deleteOldCheck').checked ? '1' : '',
-                                all_incoming_requests: allIncomingRequests ? '1' : ''
-                            });
+                        for (const domain of batch.domains) {
 
-                            const payload = response.result || {};
-                            const payloadDomain = Array.isArray(payload.processed_domains) && payload.processed_domains.length
-                                ? payload.processed_domains[0]
-                                : null;
+                            try {
+                                const response = await this.requestSingleDomain('create', domain, {
+                                    target_url: batch.target,
+                                    status_code: document.getElementById('statusCodeSelect').value,
+                                    preserve_path: document.getElementById('preservePathCheck').checked ? '1' : '',
+                                    preserve_query: document.getElementById('preserveQueryCheck').checked ? '1' : '',
+                                    delete_old: document.getElementById('deleteOldCheck').checked ? '1' : '',
+                                    all_incoming_requests: allIncomingRequests ? '1' : ''
+                                });
 
-                            const isSuccess = Boolean(response.success || (payloadDomain && payloadDomain.success));
-                            const oldDeleted = Number(payloadDomain?.old_rulesets_deleted ?? payload.total_old_rulesets_deleted ?? 0);
-                            const oldPageRulesDeleted = Number(payloadDomain?.old_page_rules_deleted ?? payload.total_old_page_rules_deleted ?? 0);
-                            const newRuleId = payloadDomain?.new_ruleset_id || payload.new_ruleset_id || 'Không';
-                            const newCreated = Boolean(payloadDomain?.new_ruleset_created || (newRuleId && newRuleId !== 'Không'));
-                            const message = payloadDomain?.error || payload.error || (isSuccess ? 'Thành công' : 'Thất bại');
+                                const payload = response.result || {};
+                                const payloadDomain = Array.isArray(payload.processed_domains) && payload.processed_domains.length
+                                    ? payload.processed_domains[0]
+                                    : null;
 
-                            processedDomains.push({
-                                domain,
-                                zone_id: response.zone_id || payloadDomain?.zone_id || 'N/A',
-                                old_rulesets_deleted: oldDeleted,
-                                old_page_rules_deleted: oldPageRulesDeleted,
-                                new_ruleset_created: newCreated ? newRuleId : 'Không',
-                                success: isSuccess,
-                                message
-                            });
+                                const isSuccess = Boolean(response.success || (payloadDomain && payloadDomain.success));
+                                const oldDeleted = Number(payloadDomain?.old_rulesets_deleted ?? payload.total_old_rulesets_deleted ?? 0);
+                                const oldPageRulesDeleted = Number(payloadDomain?.old_page_rules_deleted ?? payload.total_old_page_rules_deleted ?? 0);
+                                const newRuleId = payloadDomain?.new_ruleset_id || payload.new_ruleset_id || 'Không';
+                                const newCreated = Boolean(payloadDomain?.new_ruleset_created || (newRuleId && newRuleId !== 'Không'));
+                                const message = payloadDomain?.error || payload.error || (isSuccess ? 'Thành công' : 'Thất bại');
+                                const cachePurge = response.cache_purge;
+                                const resultMessage = cachePurge
+                                    ? `${batch.target} — ${message}; Purge Cache ${cachePurge.success ? 'thành công' : `thất bại: ${cachePurge.message}`}`
+                                    : `${batch.target} — ${message}`;
 
-                            if (isSuccess) {
-                                successCount++;
-                                totalOldDeleted += oldDeleted;
-                                totalOldPageRulesDeleted += oldPageRulesDeleted;
-                                if (newCreated) {
-                                    totalNewCreated++;
+                                processedDomains.push({
+                                    domain,
+                                    zone_id: response.zone_id || payloadDomain?.zone_id || 'N/A',
+                                    old_rulesets_deleted: oldDeleted,
+                                    old_page_rules_deleted: oldPageRulesDeleted,
+                                    new_ruleset_created: newCreated ? newRuleId : 'Không',
+                                    success: isSuccess,
+                                    message: resultMessage
+                                });
+
+                                if (isSuccess) {
+                                    successCount++;
+                                    totalOldDeleted += oldDeleted;
+                                    totalOldPageRulesDeleted += oldPageRulesDeleted;
+                                    if (newCreated) {
+                                        totalNewCreated++;
+                                    }
+                                    this.log(`✅ ${this.escapeHtml(domain)} → ${this.escapeHtml(batch.target)}`, 'success');
+                                    if (cachePurge?.success) {
+                                        this.log(`   🧹 Purge Cache thành công cho ${this.escapeHtml(domain)}`, 'success');
+                                    } else if (cachePurge) {
+                                        this.log(`   ⚠️ Tạo 301 thành công nhưng Purge Cache thất bại: ${this.escapeHtml(cachePurge.message)}`, 'warning');
+                                    }
+                                    if (oldDeleted > 0) {
+                                        this.log(`   🗑️ Xóa ${oldDeleted} ruleset(s) cũ`, 'info');
+                                    }
+                                    if (oldPageRulesDeleted > 0) {
+                                        this.log(`   🗑️ Xóa ${oldPageRulesDeleted} Page Rule(s) cũ`, 'info');
+                                    }
+                                    if (newCreated) {
+                                        this.log(`   🆕 Tạo ruleset mới: ${newRuleId}`, 'success');
+                                    }
+                                } else {
+                                    failedCount++;
+                                    this.log(`❌ ${domain} → Lỗi: ${message}`, 'error');
                                 }
-                                this.log(`✅ ${domain} → Thành công`, 'success');
-                                if (oldDeleted > 0) {
-                                    this.log(`   🗑️ Xóa ${oldDeleted} ruleset(s) cũ`, 'info');
-                                }
-                                if (oldPageRulesDeleted > 0) {
-                                    this.log(`   🗑️ Xóa ${oldPageRulesDeleted} Page Rule(s) cũ`, 'info');
-                                }
-                                if (newCreated) {
-                                    this.log(`   🆕 Tạo ruleset mới: ${newRuleId}`, 'success');
-                                }
-                            } else {
+                            } catch (domainError) {
                                 failedCount++;
-                                this.log(`❌ ${domain} → Lỗi: ${message}`, 'error');
+                                processedDomains.push({
+                                    domain,
+                                    zone_id: 'N/A',
+                                    old_rulesets_deleted: 0,
+                                    old_page_rules_deleted: 0,
+                                    new_ruleset_created: 'Không',
+                                    success: false,
+                                    message: `${batch.target} — ${domainError.message}`
+                                });
+                                this.log(`❌ ${domain} → Lỗi kết nối: ${domainError.message}`, 'error');
                             }
-                        } catch (domainError) {
-                            failedCount++;
-                            processedDomains.push({
-                                domain,
-                                zone_id: 'N/A',
-                                old_rulesets_deleted: 0,
-                                old_page_rules_deleted: 0,
-                                new_ruleset_created: 'Không',
-                                success: false,
-                                message: domainError.message
-                            });
-                            this.log(`❌ ${domain} → Lỗi kết nối: ${domainError.message}`, 'error');
-                        }
 
-                        this.updateProgress(i + 1, domains.length, successCount, failedCount);
+                            processedCount++;
+                            this.updateProgress(processedCount, totalDomains, successCount, failedCount);
+                        }
                     }
 
                     this.displayResultsTable(processedDomains);
@@ -1417,7 +1682,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     const duration = ((endTime - startTime) / 1000).toFixed(2);
 
                     this.log('📊 Tổng kết:', 'info');
-                    this.log(`   • Tổng domain: ${domains.length}`, 'info');
+                    this.log(`   • Tổng nhóm: ${batches.length}`, 'info');
+                    this.log(`   • Tổng domain: ${totalDomains}`, 'info');
                     this.log(`   • Thành công: ${successCount}`, 'success');
                     this.log(`   • Thất bại: ${failedCount}`, failedCount > 0 ? 'error' : 'info');
                     this.log(`   • Xóa rulesets cũ: ${totalOldDeleted}`, 'info');
@@ -1549,6 +1815,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     
                     const statusClass = result.success ? 'status-success' : 'status-error';
                     const statusText = result.success ? 'Thành công' : 'Thất bại';
+                    const escapedMessage = this.escapeHtml(result.message || '');
                     
                     row.innerHTML = `
                         <td><strong>${result.domain}</strong></td>
@@ -1557,7 +1824,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <td><span class="badge bg-info">${result.old_page_rules_deleted ?? 0}</span></td>
                         <td><span class="badge ${result.new_ruleset_created !== 'N/A' && result.new_ruleset_created !== 'Không' ? 'bg-success' : 'bg-secondary'}">${result.new_ruleset_created}</span></td>
                         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td><small class="text-muted">${result.message}</small></td>
+                        <td><small class="text-muted">${escapedMessage}</small></td>
                         <td>
                             <div class="d-flex flex-wrap gap-1 justify-content-center">
                                 <button type="button" class="btn btn-sm btn-outline-info" onclick="window.bulkRedirectManager.runSingleDomainAction('check', '${escapedDomain}')">Kiểm tra</button>
