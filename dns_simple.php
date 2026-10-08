@@ -201,6 +201,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             }
 
+            // ── Bật Always Use HTTPS cho một domain ──────────────────────────
+            case 'enable_always_https': {
+                $domain = strtolower(trim($_POST['domain'] ?? ''));
+                if ($domain === '') throw new Exception('Thiếu domain');
+
+                $item = [
+                    'domain' => $domain,
+                    'success' => false,
+                    'zone' => null,
+                    'https' => ['enabled' => true, 'success' => false],
+                    'error' => null,
+                ];
+                $zone = findZoneForDomain($api, $domain);
+                if (!$zone) {
+                    $item['error'] = 'Domain không tìm thấy trong Cloudflare account';
+                } else {
+                    $item['zone'] = $zone['name'];
+                    $item['zone_id'] = $zone['id'];
+                    $httpsResult = $api->setAlwaysUseHTTPS($zone['id'], true);
+                    $item['https']['success'] = (bool)($httpsResult['success'] ?? false);
+                    $item['success'] = $item['https']['success'];
+                    if (!$item['success']) {
+                        $item['error'] = $httpsResult['errors'][0]['message'] ?? 'Không thể bật Always Use HTTPS';
+                    }
+                }
+
+                echo json_encode(['success' => true, 'result' => $item]);
+                break;
+            }
+
             // ── Xóa A/CNAME theo danh sách domain ───────────────────────────
             case 'bulk_delete_by_domains': {
                 $rawDomains = trim($_POST['domains'] ?? '');
@@ -601,6 +631,12 @@ include 'includes/main_navigation.php';
                         </div>
 
                         <div class="d-grid mt-2">
+                            <button type="button" class="btn btn-outline-success btn-lg fw-bold" id="enableAlwaysHttpsBtn" onclick="bulkEnableAlwaysHttps()">
+                                <i class="fas fa-lock me-2"></i>Bật Always Use HTTPS cho danh sách domain
+                            </button>
+                        </div>
+
+                        <div class="d-grid mt-2">
                             <button type="button" class="btn btn-outline-danger btn-lg fw-bold" id="bulkDeleteDomainsBtn" onclick="bulkDeleteByDomainList()">
                                 <i class="fas fa-trash-alt me-2"></i>Xóa DNS Records theo danh sách domain
                             </button>
@@ -834,6 +870,136 @@ function bulkDeploy() {
     }
 
     deployOne(0);
+}
+
+function bulkEnableAlwaysHttps() {
+    const domains = getDomains();
+    if (!domains.length) {
+        alert('Vui lòng nhập ít nhất một domain');
+        return;
+    }
+    if (!confirm('Xác nhận bật Always Use HTTPS cho ' + domains.length + ' domain?')) return;
+
+    const btn = document.getElementById('enableAlwaysHttpsBtn');
+    const oldHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang bật Always Use HTTPS...';
+
+    const result = document.getElementById('deployResult');
+    result.style.display = 'none';
+    result.innerHTML = '';
+
+    const progressBar = document.getElementById('deployProgressBar');
+    const progressText = document.getElementById('progressText');
+    const progressDomainName = document.getElementById('progressDomainName');
+    const rows = [];
+    const total = domains.length;
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
+    progressText.textContent = '0 / ' + total + ' domain';
+    progressDomainName.textContent = 'Đang chờ...';
+
+    function processNext(index) {
+        if (index >= total) {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            progressText.textContent = total + ' / ' + total + ' domain';
+            progressDomainName.textContent = 'Hoàn tất.';
+            renderAlwaysHttpsResult(rows);
+            return;
+        }
+
+        const domain = domains[index];
+        const percent = Math.round((index / total) * 100);
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
+        progressText.textContent = index + ' / ' + total + ' domain';
+        progressDomainName.textContent = 'Đang xử lý: ' + domain;
+
+        const fd = new FormData();
+        fd.append('action', 'enable_always_https');
+        fd.append('domain', domain);
+
+        fetch('', { method: 'POST', body: fd })
+            .then(r => r.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Phản hồi không phải JSON: ' + text.slice(0, 180));
+                }
+            }))
+            .then(data => {
+                if (!data.success) throw new Error(data.error || 'Không thể bật Always Use HTTPS');
+                rows.push(data.result || {
+                    domain: domain,
+                    success: false,
+                    https: { enabled: true, success: false },
+                    error: 'Phản hồi không hợp lệ',
+                });
+                processNext(index + 1);
+            })
+            .catch(err => {
+                rows.push({
+                    domain: domain,
+                    success: false,
+                    https: { enabled: true, success: false },
+                    error: err.message,
+                });
+                processNext(index + 1);
+            });
+    }
+
+    processNext(0);
+}
+
+function renderAlwaysHttpsResult(results) {
+    const successCount = results.filter(item => item.success).length;
+    const errorCount = results.length - successCount;
+    const result = document.getElementById('deployResult');
+    result.style.display = 'block';
+
+    let html = `
+        <div class="d-flex gap-3 mb-3 flex-wrap">
+            <div class="p-3 rounded text-center" style="background:rgba(255,255,255,.05);min-width:110px;">
+                <div style="font-size:1.6rem;font-weight:700;">${results.length}</div>
+                <small class="text-muted">Tổng domain</small>
+            </div>
+            <div class="p-3 rounded text-center" style="background:rgba(63,185,80,.12);min-width:110px;">
+                <div style="font-size:1.6rem;font-weight:700;color:#3fb950;">${successCount}</div>
+                <small class="text-muted">Thành công</small>
+            </div>
+            <div class="p-3 rounded text-center" style="background:rgba(248,81,73,.12);min-width:110px;">
+                <div style="font-size:1.6rem;font-weight:700;color:#f85149;">${errorCount}</div>
+                <small class="text-muted">Lỗi</small>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0" style="color:var(--text);">
+                <thead style="background:rgba(255,255,255,.06);">
+                    <tr><th>Domain</th><th>Zone</th><th>Always Use HTTPS</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>`;
+
+    for (const item of results) {
+        html += `<tr class="${item.success ? 'rec-row-ok' : 'rec-row-fail'}">
+            <td><code>${escHtml(item.domain)}</code></td>
+            <td><small class="text-muted">${escHtml(item.zone || '—')}</small></td>
+            <td>${item.https?.success
+                ? '<span class="badge" style="background:#3fb950;color:#fff;"><i class="fas fa-lock me-1"></i>ON ✓</span>'
+                : '<span class="badge bg-danger"><i class="fas fa-lock me-1"></i>ON ✗</span>'
+            }</td>
+            <td>${item.success
+                ? '<span class="badge bg-success">✓ OK</span>'
+                : `<span class="badge bg-danger">✗ Lỗi</span><br><small class="text-danger">${escHtml(item.error || 'Không thể bật Always Use HTTPS')}</small>`
+            }</td>
+        </tr>`;
+    }
+
+    html += '</tbody></table></div>';
+    result.innerHTML = html;
+    result.scrollIntoView({ behavior: 'smooth' });
 }
 
 function bulkDeleteByDomainList() {

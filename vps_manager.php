@@ -269,20 +269,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_vps_id'])) {
             <td><?=htmlspecialchars($vps['ip'])?></td>
             <td><?=htmlspecialchars($vps['username'])?></td>
             <td>
-                <span class="vps-password" id="vps-password-<?=$i?>"><?=htmlspecialchars($vps['password'])?></span>
+                <span class="vps-password" id="vps-password-<?=$i?>" data-password="<?=htmlspecialchars($vps['password'], ENT_QUOTES, 'UTF-8')?>">••••••••</span>
+                <button type="button" class="toggle-password-btn matrix-btn btn-sm" data-password-id="vps-password-<?=$i?>" aria-label="Hiện password" style="margin-left:6px;">Hiện</button>
                 <button type="button" class="copy-btn matrix-btn btn-sm" data-password-id="vps-password-<?=$i?>" title="Copy password" style="margin-left:6px;">📋</button>
             </td>
             <td>
-                <?php
-                $info = $vps['info'];
-                if (preg_match('/^https?:\/\//i', $info)) {
-                    echo '<a href="' . htmlspecialchars($info) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($info) . '</a>';
-                } else {
-                    echo htmlspecialchars($info);
-                }
-                ?>
+                <span class="vps-info-mask" id="vps-info-mask-<?=$i?>">••••••••</span>
+                <span class="vps-info-value" id="vps-info-value-<?=$i?>" style="display:none;">
+                    <?php
+                    $info = $vps['info'];
+                    if (preg_match('/^https?:\/\//i', $info)) {
+                        echo '<a href="' . htmlspecialchars($info) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($info) . '</a>';
+                    } else {
+                        echo htmlspecialchars($info);
+                    }
+                    ?>
+                </span>
+                <button type="button" class="toggle-info-btn matrix-btn btn-sm" data-info-id="<?=$i?>" aria-label="Hiện Info" style="margin-left:6px;">Hiện</button>
             </td>
-            <td><?=htmlspecialchars($vps['aapanel_keyapi'] ?? '')?></td>
+            <td>
+                <span id="vps-keyapi-<?=$i?>" data-keyapi="<?=htmlspecialchars($vps['aapanel_keyapi'] ?? '', ENT_QUOTES, 'UTF-8')?>">••••••••</span>
+                <button type="button" class="toggle-keyapi-btn matrix-btn btn-sm" data-keyapi-id="vps-keyapi-<?=$i?>" aria-label="Hiện KeyAPI aaPanel" style="margin-left:6px;">Hiện</button>
+            </td>
             <td><?=htmlspecialchars($vps['status'] ?? '')?></td>
             <td>
                 <button type="button" class="edit-btn" data-index="<?=$i?>">Sửa</button>
@@ -404,7 +412,7 @@ function setupCopyPasswordButtons() {
             var passId = this.getAttribute('data-password-id');
             var passElem = document.getElementById(passId);
             if (passElem) {
-                var text = passElem.textContent;
+                var text = passElem.getAttribute('data-password');
                 // Try modern clipboard API
                 if (navigator.clipboard && window.isSecureContext) {
                     navigator.clipboard.writeText(text).then(() => {
@@ -439,10 +447,63 @@ function fallbackCopyText(text, btn) {
     document.body.removeChild(textarea);
 }
 
+function setupTogglePasswordButtons() {
+    document.querySelectorAll('.toggle-password-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var passElem = document.getElementById(this.getAttribute('data-password-id'));
+            if (!passElem) return;
+
+            var isVisible = this.getAttribute('aria-label') === 'Ẩn password';
+            passElem.textContent = isVisible ? '••••••••' : passElem.getAttribute('data-password');
+            this.textContent = isVisible ? 'Hiện' : 'Ẩn';
+            this.setAttribute('aria-label', isVisible ? 'Hiện password' : 'Ẩn password');
+        });
+    });
+}
+
+function setupToggleKeyapiButtons() {
+    document.querySelectorAll('.toggle-keyapi-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var keyapiElem = document.getElementById(this.getAttribute('data-keyapi-id'));
+            if (!keyapiElem) return;
+
+            var isVisible = this.getAttribute('aria-label') === 'Ẩn KeyAPI aaPanel';
+            keyapiElem.textContent = isVisible ? '••••••••' : keyapiElem.getAttribute('data-keyapi');
+            this.textContent = isVisible ? 'Hiện' : 'Ẩn';
+            this.setAttribute('aria-label', isVisible ? 'Hiện KeyAPI aaPanel' : 'Ẩn KeyAPI aaPanel');
+        });
+    });
+}
+
+function setupToggleInfoButtons() {
+    document.querySelectorAll('.toggle-info-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var infoId = this.getAttribute('data-info-id');
+            var infoMask = document.getElementById('vps-info-mask-' + infoId);
+            var infoValue = document.getElementById('vps-info-value-' + infoId);
+            if (!infoMask || !infoValue) return;
+
+            var isVisible = this.getAttribute('aria-label') === 'Ẩn Info';
+            infoMask.style.display = isVisible ? '' : 'none';
+            infoValue.style.display = isVisible ? 'none' : '';
+            this.textContent = isVisible ? 'Hiện' : 'Ẩn';
+            this.setAttribute('aria-label', isVisible ? 'Hiện Info' : 'Ẩn Info');
+        });
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupCopyPasswordButtons);
+    document.addEventListener('DOMContentLoaded', function() {
+        setupCopyPasswordButtons();
+        setupTogglePasswordButtons();
+        setupToggleKeyapiButtons();
+        setupToggleInfoButtons();
+    });
 } else {
     setupCopyPasswordButtons();
+    setupTogglePasswordButtons();
+    setupToggleKeyapiButtons();
+    setupToggleInfoButtons();
 }
 
 // AJAX VPS login check
