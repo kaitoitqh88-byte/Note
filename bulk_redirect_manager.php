@@ -884,7 +884,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <button type="button" class="btn btn-outline-primary" id="convertRedirectPairsBtn">
                         Chuyển vào form 301
                     </button>
-                    <small class="text-muted">Hỗ trợ “domain »»» URL đích”, “domain => URL đích” hoặc nhóm domain kết thúc bằng “Trỏ sang: URL đích”.</small>
+                    <small class="text-muted">Hỗ trợ “domain »»» URL đích”, “domain => URL đích” hoặc nhóm domain kết thúc bằng “Trỏ sang: URL đích” / “=>> URL đích”.</small>
                 </div>
                 <small class="text-primary d-block mt-1" id="redirectPairsStatus" aria-live="polite"></small>
             </div>
@@ -1157,11 +1157,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 };
 
-                const isValidSourceDomain = domain => {
-                    if (!domain || /^(?:https?:\/\/|\/)|[\s»=]/i.test(domain)) return false;
+                const normalizeSourceDomain = domain => {
+                    if (!domain || /^(?:https?:\/\/|\/)|[\s»=]/i.test(domain)) return null;
                     try {
                         const parsedDomain = new URL(`https://${domain}`);
-                        return Boolean(
+                        const isValid = Boolean(
                             parsedDomain.hostname &&
                             !parsedDomain.username &&
                             !parsedDomain.password &&
@@ -1170,8 +1170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             !parsedDomain.search &&
                             !parsedDomain.hash
                         );
+                        return isValid ? parsedDomain.hostname.toLowerCase() : null;
                     } catch (error) {
-                        return false;
+                        return null;
                     }
                 };
 
@@ -1189,6 +1190,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     if (/^[=\s>]+$/.test(line.trim())) return;
                     if (/^\s*\[[^\]]+\]\s*$/.test(line)) return;
 
+                    const groupArrowTarget = line.match(/^\s*=+\s*>{1,2}\s*(.+?)\s*$/);
+                    if (groupArrowTarget) {
+                        if (pendingDomains.length === 0) {
+                            errors.push(`Dòng ${index + 1}: không có domain nguồn trước dòng “=>>”.`);
+                            return;
+                        }
+                        addBatch(pendingDomains, groupArrowTarget[1], index + 1);
+                        pendingDomains = [];
+                        return;
+                    }
+
                     if (groupTarget) {
                         if (pendingDomains.length === 0) {
                             errors.push(`Dòng ${index + 1}: không có domain nguồn trước dòng “Trỏ sang”.`);
@@ -1201,9 +1213,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     const arrowParts = line.split('=>');
                     if (arrowParts.length > 1) {
-                        const sourceDomain = arrowParts[0].trim();
+                        const sourceDomain = normalizeSourceDomain(arrowParts[0].trim());
                         const rawTarget = arrowParts.slice(1).join('=>').trim();
-                        if (arrowParts.length !== 2 || !isValidSourceDomain(sourceDomain) || !rawTarget) {
+                        if (arrowParts.length !== 2 || !sourceDomain || !rawTarget) {
                             errors.push(`Dòng ${index + 1}: định dạng “domain => URL đích” không hợp lệ.`);
                             return;
                         }
@@ -1223,12 +1235,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             errors.push(`Dòng ${index + 1}: hãy kết thúc nhóm domain trước bằng “Trỏ sang: URL đích”.`);
                             return;
                         }
-                        addBatch([parts[0].trim()], parts[1].trim(), index + 1);
+                        const sourceDomain = normalizeSourceDomain(parts[0].trim());
+                        if (!sourceDomain) {
+                            errors.push(`Dòng ${index + 1}: domain nguồn không hợp lệ.`);
+                            return;
+                        }
+                        addBatch([sourceDomain], parts[1].trim(), index + 1);
                         return;
                     }
 
-                    const domain = line.trim();
-                    if (!isValidSourceDomain(domain)) {
+                    const domain = normalizeSourceDomain(line.trim());
+                    if (!domain) {
                         errors.push(`Dòng ${index + 1}: domain nguồn không hợp lệ.`);
                         return;
                     }
@@ -1581,6 +1598,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     this.log('⚡ Chế độ AJAX: xử lý từng domain theo từng request...', 'info');
 
                     const processedDomains = [];
+                    const failedDomains = [];
                     let successCount = 0;
                     let failedCount = 0;
                     let totalOldDeleted = 0;
@@ -1609,12 +1627,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     ? payload.processed_domains[0]
                                     : null;
 
-                                const isSuccess = Boolean(response.success || (payloadDomain && payloadDomain.success));
+                                const isSuccess = Boolean(payloadDomain?.success ?? response.success);
                                 const oldDeleted = Number(payloadDomain?.old_rulesets_deleted ?? payload.total_old_rulesets_deleted ?? 0);
                                 const oldPageRulesDeleted = Number(payloadDomain?.old_page_rules_deleted ?? payload.total_old_page_rules_deleted ?? 0);
                                 const newRuleId = payloadDomain?.new_ruleset_id || payload.new_ruleset_id || 'Không';
                                 const newCreated = Boolean(payloadDomain?.new_ruleset_created || (newRuleId && newRuleId !== 'Không'));
-                                const message = payloadDomain?.error || payload.error || (isSuccess ? 'Thành công' : 'Thất bại');
+                                const apiErrors = Array.isArray(payload.errors)
+                                    ? payload.errors.map(error => error.error || error.message || JSON.stringify(error)).join(' | ')
+                                    : '';
+                                const message = payloadDomain?.error || response.error || payload.error || apiErrors || (isSuccess ? 'Thành công' : 'Cloudflare không trả về lý do lỗi.');
                                 const cachePurge = response.cache_purge;
                                 const resultMessage = cachePurge
                                     ? `${batch.target} — ${message}; Purge Cache ${cachePurge.success ? 'thành công' : `thất bại: ${cachePurge.message}`}`
@@ -1654,10 +1675,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     }
                                 } else {
                                     failedCount++;
+                                    failedDomains.push({ domain, target: batch.target, error: message });
                                     this.log(`❌ ${domain} → Lỗi: ${message}`, 'error');
                                 }
                             } catch (domainError) {
                                 failedCount++;
+                                failedDomains.push({ domain, target: batch.target, error: domainError.message });
                                 processedDomains.push({
                                     domain,
                                     zone_id: 'N/A',
@@ -1691,6 +1714,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     this.log(`   • Tạo rulesets mới: ${totalNewCreated}`, 'info');
                     this.log(`   • Thời gian xử lý: ${duration}s`, 'info');
 
+                    const failureDetails = failedDomains.length
+                        ? `
+                            <div class="text-start mt-3 p-2 border rounded" style="max-height: 35vh; overflow-y: auto;">
+                                <strong>Chi tiết lỗi:</strong>
+                                <ul class="mb-0">
+                                    ${failedDomains.map(item => `<li class="mb-2"><strong>${this.escapeHtml(item.domain)}</strong> → ${this.escapeHtml(item.target)}<br>${this.escapeHtml(item.error)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `
+                        : '';
+
                     Swal.fire({
                         icon: successCount > 0 ? 'success' : 'warning',
                         title: 'Hoàn thành!',
@@ -1699,6 +1733,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <p>✅ Thành công: <strong>${successCount}</strong> domain(s)</p>
                                 <p>❌ Thất bại: <strong>${failedCount}</strong> domain(s)</p>
                                 <p>⏱️ Thời gian: <strong>${duration}s</strong></p>
+                                ${failureDetails}
                             </div>
                         `,
                         confirmButtonColor: '#667eea'

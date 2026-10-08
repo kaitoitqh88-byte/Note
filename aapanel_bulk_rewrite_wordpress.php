@@ -494,57 +494,28 @@ function rewriteAaPanelRequestRaw($apiUrl, $apiKey, $endpoint, array $data = [])
     return $decoded;
 }
 
-function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
-    $data = rewriteAaPanelRequest($apiUrl, $apiKey, '/v2/site?action=get_site_list');
-
-    // Fallback cho bản aaPanel không hỗ trợ v2/site.
-    $needFallback = false;
-    if (!is_array($data)) {
-        $needFallback = true;
-    } elseif (isset($data['msg']) && is_string($data['msg']) && stripos($data['msg'], 'module not found') !== false) {
-        $needFallback = true;
-    } elseif ((!isset($data['data']) || !is_array($data['data'])) && (!isset($data['message']) || !is_array($data['message']))) {
-        $needFallback = true;
+function rewriteExtractAaPanelSiteRows($value, array &$rows) {
+    if (!is_array($value)) {
+        return;
     }
 
-    if ($needFallback) {
-        $fallback = rewriteAaPanelRequest($apiUrl, $apiKey, '/site?action=GetSiteList', [
-            'p' => 1,
-            'limit' => 10000,
-            'search' => (string)$searchDomain,
-        ]);
-        if (is_array($fallback)) {
-            $data = $fallback;
+    foreach (['domain', 'domains', 'domain_list', 'name', 'webname'] as $field) {
+        if (array_key_exists($field, $value)) {
+            $rows[] = $value;
+            break;
         }
     }
 
+    foreach ($value as $child) {
+        if (is_array($child)) {
+            rewriteExtractAaPanelSiteRows($child, $rows);
+        }
+    }
+}
+
+function rewriteSiteRowsToTable(array $rows) {
     $table = [];
     $seen = [];
-    $rows = [];
-    $collectRows = static function ($value) use (&$collectRows, &$rows) {
-        if (!is_array($value)) {
-            return;
-        }
-
-        $hasSiteField = false;
-        foreach (['domain', 'domains', 'domain_list', 'name', 'webname'] as $field) {
-            if (array_key_exists($field, $value)) {
-                $hasSiteField = true;
-                break;
-            }
-        }
-        if ($hasSiteField) {
-            $rows[] = $value;
-        }
-
-        foreach ($value as $child) {
-            if (is_array($child)) {
-                $collectRows($child);
-            }
-        }
-    };
-    $collectRows($data);
-
     foreach ($rows as $site) {
         $domain = '';
         foreach (['domain', 'domains', 'domain_list', 'name', 'webname'] as $domainField) {
@@ -578,18 +549,207 @@ function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
         }
     }
 
-    return ['site_table' => $table, 'raw' => $data];
+    return $table;
+}
+
+function rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint, $searchDomain = '') {
+    $pageSize = 500;
+    $maxPages = 100;
+    $rows = [];
+    $seenRows = [];
+    $previousPageSignature = '';
+
+    for ($page = 1; $page <= $maxPages; $page++) {
+        $payload = [
+            'p' => $page,
+            'page' => $page,
+            'limit' => $pageSize,
+        ];
+        if ($searchDomain !== '') {
+            $payload['search'] = $searchDomain;
+        }
+
+        $response = rewriteAaPanelRequest($apiUrl, $apiKey, $endpoint, $payload);
+        if (!is_array($response)
+            || (isset($response['status']) && $response['status'] === false)
+            || (isset($response['success']) && $response['success'] === false)
+            || (isset($response['code']) && (int)$response['code'] !== 0)) {
+            return [
+                'rows' => $rows,
+                'complete' => false,
+                'error' => rewriteExtractResponseMessage(is_array($response) ? $response : []),
+            ];
+        }
+
+        $pageRows = [];
+        rewriteExtractAaPanelSiteRows($response, $pageRows);
+        if (empty($pageRows)
+            && !is_array($response['data'] ?? null)
+            && !is_array($response['message'] ?? null)) {
+            return [
+                'rows' => $rows,
+                'complete' => false,
+                'error' => rewriteExtractResponseMessage($response),
+            ];
+        }
+
+        $totalRows = rewriteFindAaPanelSiteTotal($response);
+        if (empty($pageRows) && $searchDomain !== '') {
+            return ['rows' => $rows, 'complete' => true, 'error' => ''];
+        }
+        if (empty($pageRows) && $totalRows !== null && $totalRows > count($rows)) {
+            return [
+                'rows' => $rows,
+                'complete' => false,
+                'error' => 'aaPanel báo còn site nhưng trang hiện tại không trả về dữ liệu.',
+            ];
+        }
+
+        $signature = md5((string)json_encode($pageRows));
+        if ($page > 1 && $signature === $previousPageSignature && !empty($pageRows)) {
+            return [
+                'rows' => $rows,
+                'complete' => false,
+                'error' => 'aaPanel trả lặp lại cùng một trang site; dừng phân trang để tránh kết quả thiếu.',
+            ];
+        }
+        $previousPageSignature = $signature;
+
+        foreach ($pageRows as $row) {
+            $rowKey = (string)json_encode($row);
+            if (!isset($seenRows[$rowKey])) {
+                $rows[] = $row;
+                $seenRows[$rowKey] = true;
+            }
+        }
+
+        $hasMoreByTotal = $totalRows !== null
+            && $totalRows > (($page - 1) * count($pageRows) + count($pageRows));
+        if (!$hasMoreByTotal && count($pageRows) < $pageSize) {
+            return ['rows' => $rows, 'complete' => true, 'error' => ''];
+        }
+    }
+
+    return [
+        'rows' => $rows,
+        'complete' => false,
+        'error' => 'Đã đạt giới hạn ' . $maxPages . ' trang khi lấy danh sách site aaPanel.',
+    ];
+}
+
+function rewriteFindAaPanelSiteTotal($value) {
+    if (!is_array($value)) {
+        return null;
+    }
+
+    foreach (['total', 'total_count', 'totalCount', 'recordsTotal', 'records_total'] as $key) {
+        if (isset($value[$key]) && is_numeric($value[$key])) {
+            return max(0, (int)$value[$key]);
+        }
+    }
+
+    foreach ($value as $child) {
+        if (is_array($child)) {
+            $total = rewriteFindAaPanelSiteTotal($child);
+            if ($total !== null) {
+                return $total;
+            }
+        }
+    }
+
+    return null;
+}
+
+function rewriteFetchSiteTable($apiUrl, $apiKey, $searchDomain = '') {
+    $normalizedSearch = rewriteNormalizeDomainForVpsLookup($searchDomain);
+    $endpoints = [
+        '/v2/site?action=get_site_list',
+        '/site?action=GetSiteList',
+    ];
+    $allRows = [];
+    $seenRows = [];
+    $errors = [];
+    $lookupComplete = false;
+
+    foreach ($endpoints as $endpoint) {
+        if ($normalizedSearch !== '') {
+            $searchResult = rewriteFetchSiteRowsFromEndpoint(
+                $apiUrl,
+                $apiKey,
+                $endpoint,
+                $normalizedSearch
+            );
+            foreach ($searchResult['rows'] as $row) {
+                $rowKey = (string)json_encode($row);
+                if (!isset($seenRows[$rowKey])) {
+                    $allRows[] = $row;
+                    $seenRows[$rowKey] = true;
+                }
+            }
+
+            $searchMap = rewriteBuildDomainMap(rewriteSiteRowsToTable($searchResult['rows']));
+            if (isset($searchMap[$normalizedSearch])) {
+                return [
+                    'site_table' => rewriteSiteRowsToTable($allRows),
+                    'raw' => $searchResult['rows'],
+                    'lookup_complete' => true,
+                    'lookup_errors' => [],
+                ];
+            }
+            if ($searchResult['error'] !== '') {
+                $errors[] = $endpoint . ': ' . $searchResult['error'];
+            }
+        }
+
+        $fullResult = rewriteFetchSiteRowsFromEndpoint($apiUrl, $apiKey, $endpoint);
+        foreach ($fullResult['rows'] as $row) {
+            $rowKey = (string)json_encode($row);
+            if (!isset($seenRows[$rowKey])) {
+                $allRows[] = $row;
+                $seenRows[$rowKey] = true;
+            }
+        }
+        $lookupComplete = $lookupComplete || $fullResult['complete'];
+        if ($fullResult['error'] !== '') {
+            $errors[] = $endpoint . ': ' . $fullResult['error'];
+        }
+
+        $siteMap = rewriteBuildDomainMap(rewriteSiteRowsToTable($allRows));
+        if ($normalizedSearch !== '' && isset($siteMap[$normalizedSearch])) {
+            return [
+                'site_table' => rewriteSiteRowsToTable($allRows),
+                'raw' => $allRows,
+                'lookup_complete' => true,
+                'lookup_errors' => [],
+            ];
+        }
+    }
+
+    return [
+        'site_table' => rewriteSiteRowsToTable($allRows),
+        'raw' => $allRows,
+        'lookup_complete' => $lookupComplete,
+        'lookup_errors' => $lookupComplete ? [] : array_values(array_unique($errors)),
+    ];
 }
 
 function rewriteFindSiteInVps($apiUrl, $apiKey, $domain) {
     $normalized = rewriteNormalizeDomainForVpsLookup($domain);
     if ($normalized === '') {
-        return null;
+        return [
+            'site' => null,
+            'lookup_complete' => false,
+            'lookup_errors' => ['Domain không hợp lệ để tìm trên VPS.'],
+        ];
     }
 
     $siteResult = rewriteFetchSiteTable($apiUrl, $apiKey, $normalized);
     $domainMap = rewriteBuildDomainMap($siteResult['site_table'] ?? []);
-    return $domainMap[$normalized] ?? null;
+    return [
+        'site' => $domainMap[$normalized] ?? null,
+        'lookup_complete' => !empty($siteResult['lookup_complete']),
+        'lookup_errors' => $siteResult['lookup_errors'] ?? [],
+    ];
 }
 
 function rewriteBuildDomainMap(array $siteTable) {
@@ -1212,6 +1372,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         $preview = [];
         $found = 0;
         $resolved = 0;
+        $notFound = 0;
+        $lookupErrors = 0;
 
         foreach ($domains as $domain) {
             $selectedVpsIp = rewriteGetSelectedVpsIp($selectedVps, $domain);
@@ -1219,6 +1381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 ? rewriteResolveSelectedVps($domain, $selectedVpsIp, $vpsListForApi)
                 : rewriteResolveVpsByDomain($cf, $domain, $vpsListForApi);
             if (!$resolve['success']) {
+                $notFound++;
                 $preview[] = [
                     'domain' => $domain,
                     'status' => 'not_found',
@@ -1231,7 +1394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             }
 
             $resolved++;
-            $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key']);
+            $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key'], $domain);
             $siteTable = $siteResult['site_table'] ?? [];
             $domainMap = rewriteBuildDomainMap($siteTable);
 
@@ -1247,14 +1410,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                     'msg' => 'B1: CF => IP ' . ($resolve['origin_ip'] ?? '') . ' | B2: tạo API config từ VPS thành công',
                 ];
             } else {
+                $lookupComplete = !empty($siteResult['lookup_complete']);
+                if ($lookupComplete) {
+                    $notFound++;
+                } else {
+                    $lookupErrors++;
+                }
                 $preview[] = [
                     'domain' => $domain,
-                    'status' => 'not_found',
+                    'status' => $lookupComplete ? 'not_found' : 'error',
                     'webname' => '',
                     'vps_ip' => $resolve['origin_ip'] ?? '',
                     'api_url' => $resolve['api_config']['panel_url'] ?? '',
                     'api_endpoint' => $resolve['api_config']['save_file_endpoint'] ?? '',
-                    'msg' => 'Đã resolve VPS nhưng không thấy site trên aaPanel tương ứng. Khi Apply sẽ thử cập nhật trực tiếp theo domain.',
+                    'msg' => $lookupComplete
+                        ? 'Đã resolve VPS nhưng không thấy site trên aaPanel tương ứng (đã tìm hết danh sách). Khi Apply sẽ thử cập nhật trực tiếp theo domain.'
+                        : 'Chưa thể xác minh site vì không lấy đủ danh sách aaPanel: ' . implode(' | ', $siteResult['lookup_errors'] ?? []),
                 ];
             }
         }
@@ -1265,7 +1436,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 'total' => count($domains),
                 'resolved_vps' => $resolved,
                 'found' => $found,
-                'not_found' => count($domains) - $found,
+                'not_found' => $notFound,
+                'error' => $lookupErrors,
             ],
             'preview' => $preview,
         ]);
@@ -1287,6 +1459,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         }
 
         $siteMapByVpsIp = [];
+        $siteLookupCompleteByVpsIp = [];
         $results = [];
         $successCount = 0;
         $errorCount = 0;
@@ -1314,23 +1487,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             if (!isset($siteMapByVpsIp[$vpsIp])) {
                 $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key']);
                 $siteMapByVpsIp[$vpsIp] = rewriteBuildDomainMap($siteResult['site_table'] ?? []);
+                $siteLookupCompleteByVpsIp[$vpsIp] = !empty($siteResult['lookup_complete']);
             }
 
             $domainMap = $siteMapByVpsIp[$vpsIp];
             if (!isset($domainMap[$lookupDomain])) {
-                $site = rewriteFindSiteInVps($resolve['api_url'], $resolve['api_key'], $lookupDomain);
-                if (is_array($site)) {
-                    $domainMap[$lookupDomain] = $site;
+                $lookupResult = rewriteFindSiteInVps($resolve['api_url'], $resolve['api_key'], $lookupDomain);
+                $siteLookupCompleteByVpsIp[$vpsIp] = $siteLookupCompleteByVpsIp[$vpsIp]
+                    || !empty($lookupResult['lookup_complete']);
+                if (is_array($lookupResult['site'])) {
+                    $domainMap[$lookupDomain] = $lookupResult['site'];
                     $siteMapByVpsIp[$vpsIp] = $domainMap;
                 }
             }
             if (!isset($domainMap[$lookupDomain])) {
-                $notFoundCount++;
+                $lookupComplete = $siteLookupCompleteByVpsIp[$vpsIp] ?? false;
+                if ($lookupComplete) {
+                    $notFoundCount++;
+                } else {
+                    $errorCount++;
+                }
                 $results[] = [
                     'domain' => $wwwDomain,
-                    'status' => 'not_found',
+                    'status' => $lookupComplete ? 'not_found' : 'error',
                     'method' => 'site-lookup',
-                    'msg' => 'Không tìm thấy site gốc trên aaPanel/VPS.',
+                    'msg' => $lookupComplete
+                        ? 'Đã tìm hết danh sách site aaPanel nhưng không thấy site gốc.'
+                        : 'Không thể xác minh site do API aaPanel không trả đủ danh sách: ' . implode(' | ', $lookupResult['lookup_errors'] ?? []),
                     'vps_ip' => $vpsIp,
                 ];
                 continue;
@@ -1402,6 +1585,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         }
 
         $domainMapByVpsIp = [];
+        $siteLookupCompleteByVpsIp = [];
         $results = [];
         $successCount = 0;
         $errorCount = 0;
@@ -1429,17 +1613,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 $siteResult = rewriteFetchSiteTable($resolve['api_url'], $resolve['api_key']);
                 $siteTable = $siteResult['site_table'] ?? [];
                 $domainMapByVpsIp[$vpsIp] = rewriteBuildDomainMap($siteTable);
+                $siteLookupCompleteByVpsIp[$vpsIp] = !empty($siteResult['lookup_complete']);
             }
 
             $domainMap = $domainMapByVpsIp[$vpsIp];
+            $lookupResult = ['lookup_errors' => []];
             if (!isset($domainMap[$domain])) {
-                $site = rewriteFindSiteInVps($resolve['api_url'], $resolve['api_key'], $domain);
-                if (is_array($site)) {
-                    $domainMap[$domain] = $site;
+                $lookupResult = rewriteFindSiteInVps($resolve['api_url'], $resolve['api_key'], $domain);
+                $siteLookupCompleteByVpsIp[$vpsIp] = $siteLookupCompleteByVpsIp[$vpsIp]
+                    || !empty($lookupResult['lookup_complete']);
+                if (is_array($lookupResult['site'])) {
+                    $domainMap[$domain] = $lookupResult['site'];
                     $domainMapByVpsIp[$vpsIp] = $domainMap;
                 }
             }
             if (!isset($domainMap[$domain])) {
+                if (empty($siteLookupCompleteByVpsIp[$vpsIp])) {
+                    $errorCount++;
+                    $results[] = [
+                        'domain' => $domain,
+                        'status' => 'error',
+                        'msg' => 'Không thể xác minh site vì API aaPanel không trả đủ danh sách; không chạy cập nhật dự phòng để tránh sửa nhầm: ' . implode(' | ', $lookupResult['lookup_errors'] ?? []),
+                        'method' => 'site-lookup-incomplete',
+                        'vps_ip' => $vpsIp,
+                        'api_url' => $resolve['api_config']['panel_url'] ?? '',
+                    ];
+                    continue;
+                }
+
                 $directResult = rewriteApplyWordPressRuleDirect($resolve['api_url'], $resolve['api_key'], $domain);
                 if ($directResult['success']) {
                     $successCount++;
@@ -1979,6 +2180,16 @@ document.getElementById('btnPreview').addEventListener('click', async () => {
         renderResults(data.preview || []);
         setButtonState(btn, 'success', 'Preview xong');
         pushUiLog(`Preview hoàn tất: tổng ${data.summary?.total ?? 0}, found ${data.summary?.found ?? 0}.`, 'success');
+        (data.preview || []).forEach((row) => {
+            if (row.status !== 'not_found' || !row.vps_ip || !row.api_url) {
+                return;
+            }
+
+            pushUiLog(
+                `${row.msg || 'Đã resolve VPS nhưng không thấy site trên aaPanel tương ứng. Khi Apply sẽ thử cập nhật trực tiếp theo domain.'} | VPS: ${row.vps_ip} | API: ${row.api_url}`,
+                'warn'
+            );
+        });
     } catch (e) {
         renderSummary();
         renderResults([{domain: '-', status: 'error', method: '-', msg: e?.message || 'Preview thất bại'}]);

@@ -3732,6 +3732,7 @@ class CloudflareAPI {
             $results['total_domains'] = count($domains);
             
             foreach ($domains as $index => $domain) {
+                $domain = trim((string)$domain);
                 $domainResult = [
                     'domain' => $domain,
                     'zone_id' => null,
@@ -3745,6 +3746,9 @@ class CloudflareAPI {
                 ];
                 
                 try {
+                    $domain = $this->normalizeDomainToAscii($domain);
+                    $domainResult['domain'] = $domain;
+
                     // Step 1: Get Zone ID from domain
                     $domainResult['steps'][] = 'Getting zone ID...';
                     $zoneId = $this->getZoneIdByDomain($domain);
@@ -3877,22 +3881,57 @@ class CloudflareAPI {
     }
     
     /**
+     * Normalize a domain's hostname to its ASCII IDN form for Cloudflare.
+     */
+    private function normalizeDomainToAscii($domain) {
+        $domain = trim((string)$domain);
+        if ($domain === '') {
+            return $domain;
+        }
+
+        $url = preg_match('#^https?://#i', $domain) ? $domain : 'https://' . $domain;
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return $domain;
+        }
+
+        $host = strtolower(rtrim($host, '.'));
+        if (function_exists('idn_to_ascii')) {
+            $asciiHost = idn_to_ascii($host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+            if ($asciiHost === false) {
+                throw new Exception("Invalid internationalized domain name: {$domain}");
+            }
+            $host = strtolower($asciiHost);
+        }
+
+        return $host;
+    }
+
+    /**
      * Get Zone ID by domain name (public method)
      */
     public function getZoneIdByDomain($domain) {
         try {
             // Clean domain - remove protocol, www, paths
-            $cleanDomain = preg_replace('#^https?://#i', '', $domain);
+            $cleanDomain = $this->normalizeDomainToAscii($domain);
             $cleanDomain = preg_replace('#^www\.#i', '', $cleanDomain);
-            $cleanDomain = explode('/', $cleanDomain)[0];
             
-            // Search for exact zone match
-            $zones = $this->searchZones($cleanDomain, 1, 50);
-            
-            if ($zones && isset($zones['success']) && $zones['success'] && !empty($zones['result'])) {
-                foreach ($zones['result'] as $zone) {
-                    if (strtolower($zone['name']) === strtolower($cleanDomain)) {
-                        return $zone['id'];
+            $searchNames = [$cleanDomain];
+            if (function_exists('idn_to_utf8')) {
+                $unicodeName = idn_to_utf8($cleanDomain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+                if (is_string($unicodeName) && $unicodeName !== '' && $unicodeName !== $cleanDomain) {
+                    $searchNames[] = $unicodeName;
+                }
+            }
+
+            foreach ($searchNames as $searchName) {
+                // Bypass cached searches so newly added zones are found immediately.
+                $zones = $this->searchZones($searchName, 1, 50, null, null, false);
+                if ($zones && !empty($zones['success']) && !empty($zones['result'])) {
+                    foreach ($zones['result'] as $zone) {
+                        if ($this->normalizeDomainToAscii($zone['name'] ?? '') === $cleanDomain) {
+                            return $zone['id'];
+                        }
                     }
                 }
             }
